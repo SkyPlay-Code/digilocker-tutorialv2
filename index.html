@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     body {
-      /* Fallback font stack */
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      background-color: #000000; /* Default background to black */
     }
 
     /* Glow effects */
@@ -80,6 +80,10 @@
       75% { clip-path: polygon(0 88%, 100% 88%, 100% 92%, 0 92%); }
       100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
     }
+    .materialize-char { /* Added from HeroSection for title materialization */
+      opacity: 0;
+      animation: materialize 0.5s forwards;
+    }
   </style>
   <script>
     tailwind.config = {
@@ -89,13 +93,14 @@
             orbitron: ['Orbitron', 'sans-serif'],
           },
           animation: {
-            'spark': 'spark 0.5s ease-out forwards', /* Removed infinite, let group-hover retrigger */
+            'spark': 'spark 0.5s ease-out forwards',
             'pulse-orb': 'pulse-orb-animation 2s infinite',
             'materialize': 'materialize 0.5s forwards',
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
             'fadeIn': 'fadeIn 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
+            'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out', // For 3D crystal
           },
           keyframes: {
             spark: {
@@ -103,11 +108,12 @@
               '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
             },
             'pulse-orb-animation': {
-              '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' }, /* cyan-500 */
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' },
               '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
             },
             materialize: {
-              to: { opacity: '1' }
+              '0%': { opacity: '0', transform: 'translateY(20px) scale(0.8)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
             },
             typewriter: {
                 from: { width: '0' },
@@ -115,8 +121,8 @@
             },
             beam: {
               '0%': { height: '0', opacity: '0' },
-              '50%': { height: '128px', opacity: '1' }, /* h-32 */
-              '100%': { height: '128px', opacity: '0', transform: 'translate(-50%, -100%) scaleY(1.5)' } /* Rotation is dynamic */
+              '50%': { height: '128px', opacity: '1' },
+              '100%': { height: '128px', opacity: '0', transform: 'translate(-50%, -100%) scaleY(1.5)' }
             },
             fadeIn: { 
               '0%': { opacity:'0', transform: 'scale(0.95)' }, 
@@ -125,21 +131,24 @@
             slideUp: { 
               '0%': { opacity:'0', transform: 'translate(-50%, -40%)' }, 
               '100%': { opacity:'1', transform: 'translate(-50%, -50%)' } 
+            },
+            crystalCorePulse: { // For 3D crystal core
+              '0%, 100%': { opacity: 0.7, transform: 'scale(1)' },
+              '50%': { opacity: 1, transform: 'scale(1.1)' },
             }
           },
           colors: {
-            cyan: { /* Tailwind cyan palette */
+            cyan: {
               DEFAULT: '#06b6d4', 50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63', 950: '#083344'
             },
-            magenta: { /* Custom magenta based on fuchsia */
+            magenta: {
                 DEFAULT: '#d946ef', 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75', 950: '#4a044e'
             },
-            // Ensuring purple and indigo are fully available if used beyond defaults
             purple: { DEFAULT: '#a855f7', 50: '#fbf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce', 800: '#6b21a8', 900: '#581c87', 950: '#3b0764'},
             indigo: { DEFAULT: '#6366f1', 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b'}
           },
           dropShadow: {
-            '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4', // For GlobeAltIcon from ShareSection
+            '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4',
           }
         }
       },
@@ -152,23 +161,21 @@
             },
             '.scrollbar-thumb-indigo-500': { '--scrollbar-thumb': '#6366f1' },
             '.scrollbar-track-indigo-900\\/50': { '--scrollbar-track': 'rgba(49, 46, 129, 0.5)' },
-
-            '.scrollbar-webkit': { /* For Webkit browsers */ }
+            '.scrollbar-webkit': { }
           };
           addUtilities(newUtilities, ['responsive', 'hover']);
-
-           addUtilities({ // Direct Webkit scrollbar styling
+           addUtilities({
             '.scrollbar-webkit::-webkit-scrollbar': {
               width: '8px',
               height: '8px',
             },
             '.scrollbar-webkit::-webkit-scrollbar-track': {
-              background: 'rgba(49, 46, 129, 0.5)', /* indigo-900/50 */
+              background: 'rgba(49, 46, 129, 0.5)',
             },
             '.scrollbar-webkit::-webkit-scrollbar-thumb': {
-              backgroundColor: '#6366f1', /* indigo-500 */
+              backgroundColor: '#6366f1',
               borderRadius: '4px',
-              border: '2px solid rgba(49, 46, 129, 0.5)', /* indigo-900/50 */
+              border: '2px solid rgba(49, 46, 129, 0.5)',
             },
           });
         }
@@ -180,7 +187,10 @@
   "imports": {
     "react": "https://esm.sh/react@^19.1.0",
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react/": "https://esm.sh/react@^19.1.0/"
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+    "three/": "https://esm.sh/three@^0.177.0/"
   }
 }
 </script>

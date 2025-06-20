@@ -12,8 +12,24 @@ export const PlayIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-export const StarIcon: React.FC<{ className?: string; filled?: boolean; style?: React.CSSProperties }> = ({ className, filled, style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5} className={className || "w-6 h-6"} style={style}>
+interface StarIconProps {
+  className?: string;
+  filled?: boolean;
+  style?: React.CSSProperties;
+  onClick?: React.MouseEventHandler<SVGSVGElement>;
+}
+
+export const StarIcon: React.FC<StarIconProps> = ({ className, filled, style, onClick }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill={filled ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth={1.5}
+    className={className || "w-6 h-6"}
+    style={style}
+    onClick={onClick}
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.619.049.863.833.438 1.259l-4.255 3.54a.563.563 0 0 0-.162.536l1.373 5.331c.174.675-.522 1.229-1.132.887l-4.597-2.898a.563.563 0 0 0-.616 0l-4.597 2.898c-.61.342-1.306-.212-1.132-.887l1.373-5.331a.563.563 0 0 0-.162-.536l-4.255-3.54c-.425-.426-.181-1.21.438-1.259l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.499Z" />
   </svg>
 );
