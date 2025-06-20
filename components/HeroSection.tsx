@@ -50,6 +50,7 @@ const NUM_TITLE_SHARDS = 60;
 interface LightningArc {
   id: string;
   d: string;
+  style?: React.CSSProperties;
 }
 
 const StarChartStar = React.memo(({ style }: { style: React.CSSProperties }) => (
@@ -86,8 +87,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   const [lightningArcs, setLightningArcs] = useState<LightningArc[]>([]);
   const lightningIntervalRef = useRef<number | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);
-  const orbClickFlashRef = useRef<HTMLDivElement>(null);
+  const orbClickFlashRef = useRef<HTMLDivElement>(null); // This will be the new flash element inside the orb
   const [orbClicked, setOrbClicked] = useState(false);
+  const orbCoreRef = useRef<HTMLDivElement>(null); // Ref for the Orb's Core layer for lightning origin
 
 
   useEffect(() => {
@@ -163,49 +165,65 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   }, [typedSubtitle, fullSubtitle]);
 
   // Orb effects
-  const generateLightningArcPath = (orbRadius: number): string => {
+  const generateLightningArcPath = useCallback((coreRadius: number, orbContainerRadius: number): string => {
+    const svgCenter = orbContainerRadius; // Viewbox is 2*orbContainerRadius x 2*orbContainerRadius, center is at orbContainerRadius, orbContainerRadius
+
+    // Start on the edge of the core
     const angleStart = Math.random() * Math.PI * 2;
-    const startX = orbRadius + Math.cos(angleStart) * orbRadius;
-    const startY = orbRadius + Math.sin(angleStart) * orbRadius;
+    const startX = svgCenter + Math.cos(angleStart) * coreRadius;
+    const startY = svgCenter + Math.sin(angleStart) * coreRadius;
 
-    const angleEnd = Math.random() * Math.PI * 2;
-    let endX = orbRadius + Math.cos(angleEnd) * orbRadius;
-    let endY = orbRadius + Math.sin(angleEnd) * orbRadius;
-
-    if (Math.hypot(endX - startX, endY - startY) < orbRadius / 2) {
-        endX = orbRadius + Math.cos(angleEnd + Math.PI/2) * orbRadius;
-        endY = orbRadius + Math.sin(angleEnd + Math.PI/2) * orbRadius;
-    }
+    // End near the inner edge of the lens (approx. orbContainerRadius * 0.9 to orbContainerRadius)
+    // The arc should be short and contained within the orb, arcing outwards from core
+    const arcLengthFactor = Math.random() * 0.3 + 0.2; // Arc length relative to (orbRadius - coreRadius)
+    const endRadius = coreRadius + (orbContainerRadius - coreRadius) * arcLengthFactor;
     
+    // Ensure arc is directed outwards from start point
+    const endX = svgCenter + Math.cos(angleStart) * endRadius + (Math.random() - 0.5) * (endRadius * 0.3); // Add some randomness to angle
+    const endY = svgCenter + Math.sin(angleStart) * endRadius + (Math.random() - 0.5) * (endRadius * 0.3);
+
+
     const midPoints = [];
-    const numSegments = Math.floor(Math.random() * 2) + 2; 
+    const numSegments = Math.floor(Math.random() * 2) + 2; // 2-3 segments for a short, sharp arc
     for (let i = 1; i < numSegments; i++) {
         const t = i / numSegments;
         const baseX = startX + (endX - startX) * t;
         const baseY = startY + (endY - startY) * t;
-        const offsetX = (Math.random() - 0.5) * (orbRadius * 0.3);
-        const offsetY = (Math.random() - 0.5) * (orbRadius * 0.3);
+        // Jitter perpendicular to the main arc direction for jaggedness
+        const perpendicularAngle = angleStart + Math.PI / 2;
+        const jitterMagnitude = (orbContainerRadius * 0.05) * (Math.random() - 0.5) * 2; // Max 5% of orb radius jitter
+        const offsetX = Math.cos(perpendicularAngle) * jitterMagnitude;
+        const offsetY = Math.sin(perpendicularAngle) * jitterMagnitude;
         midPoints.push(`${baseX + offsetX},${baseY + offsetY}`);
     }
     return `M${startX},${startY} L${midPoints.join(' L')} L${endX},${endY}`;
-  };
+  }, []);
+
 
   useEffect(() => {
     if (isOrbHovered) {
       if (lightningIntervalRef.current) clearInterval(lightningIntervalRef.current);
       lightningIntervalRef.current = window.setInterval(() => {
-        if (!orbRef.current) return;
-        const orbRadius = orbRef.current.offsetWidth / 2;
+        if (!orbRef.current || !orbCoreRef.current) return;
+        
+        const orbContainerRect = orbRef.current.getBoundingClientRect();
+        const orbContainerRadius = orbContainerRect.width / 2; // True radius of the orb container
+
+        // The lightning SVG viewBox is set to be 2*orbContainerRadius.
+        // The core's visual radius is ~55% of the orb container, so use that for lightning origin.
+        const visualCoreRadius = orbContainerRadius * 0.55; 
+        
         const newArcs: LightningArc[] = [];
-        const arcCount = Math.floor(Math.random() * 2) + 2; 
+        const arcCount = Math.floor(Math.random() * 2) + 1; // 1-2 sharp arcs
         for (let i = 0; i < arcCount; i++) {
           newArcs.push({
             id: `arc-${Date.now()}-${i}`,
-            d: generateLightningArcPath(orbRadius),
+            d: generateLightningArcPath(visualCoreRadius, orbContainerRadius),
+            style: { animationDelay: `${Math.random() * 0.1}s` } // Slight delay variation
           });
         }
         setLightningArcs(newArcs);
-      }, 400); 
+      }, 250); // Faster arc generation
     } else {
       if (lightningIntervalRef.current) {
         clearInterval(lightningIntervalRef.current);
@@ -216,7 +234,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     return () => {
       if (lightningIntervalRef.current) clearInterval(lightningIntervalRef.current);
     };
-  }, [isOrbHovered]);
+  }, [isOrbHovered, generateLightningArcPath]);
 
 
   const handleOrbMouseDown = () => {
@@ -236,7 +254,33 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   };
    const handleOrbClick = () => {
     setOrbClicked(true); 
-    onInitiateCalibration();
+    // Simulate the Orb expanding to fill screen for transition
+    if (orbRef.current) {
+        const rect = orbRef.current.getBoundingClientRect();
+        const transitionOrb = document.createElement('div');
+        transitionOrb.style.position = 'fixed';
+        transitionOrb.style.left = `${rect.left}px`;
+        transitionOrb.style.top = `${rect.top}px`;
+        transitionOrb.style.width = `${rect.width}px`;
+        transitionOrb.style.height = `${rect.height}px`;
+        transitionOrb.style.backgroundColor = '#F0FFFF'; // Bright white core color
+        transitionOrb.style.borderRadius = '50%';
+        transitionOrb.style.zIndex = '10000';
+        transitionOrb.style.transition = 'all 0.5s cubic-bezier(0.25, 1, 0.5, 1)'; // Fast out, slow in
+        document.body.appendChild(transitionOrb);
+
+        requestAnimationFrame(() => {
+            transitionOrb.style.transform = 'scale(50)'; // Scale to fill screen
+            transitionOrb.style.opacity = '0.7';
+        });
+        
+        setTimeout(() => {
+            onInitiateCalibration(); // Actual navigation / state change
+            document.body.removeChild(transitionOrb); // Clean up
+        }, 500); // Match transition duration
+    } else {
+        onInitiateCalibration(); // Fallback if ref is not available
+    }
   };
 
 
@@ -603,51 +647,74 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           <span className="animate-ping text-purple-300">_</span>
         </p>
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
-           <div className="relative w-48 h-48 group"> 
+            {/* Initiate Calibration Orb - New Multi-Layered Design */}
             <button
-              ref={orbRef}
-              onClick={handleOrbClick}
-              onMouseDown={handleOrbMouseDown}
-              onMouseUp={handleOrbMouseUp}
-              onMouseEnter={() => setIsOrbHovered(true)}
-              onMouseLeave={() => setIsOrbHovered(false)}
-              aria-label="Initiate Calibration"
-              className={`relative w-full h-full rounded-full bg-[#005f7f]
-                         flex flex-col items-center justify-center text-center text-white
-                         font-exo2-bold text-lg leading-tight tracking-wide
-                         transition-all duration-300 ease-in-out cursor-pointer
-                         focus:outline-none focus-visible:ring-4 focus-visible:ring-[#00BFFF]/50
-                         ${isOrbHovered ? 'animate-orb-vibration orb-glow-hover animate-orb-glow-flicker' : 'orb-glow-default animate-orb-glow-pulse'}`}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+                ref={orbRef}
+                onClick={handleOrbClick}
+                onMouseDown={handleOrbMouseDown}
+                onMouseUp={handleOrbMouseUp}
+                onMouseEnter={() => setIsOrbHovered(true)}
+                onMouseLeave={() => setIsOrbHovered(false)}
+                aria-label="Initiate Calibration"
+                className={`orb-container mr-6 
+                           ${isOrbHovered 
+                             ? 'animate-orb-vibration orb-layer-1-corona-hover' 
+                             : 'orb-layer-1-corona orb-layer-1-corona-pulsing'
+                           }`}
+                style={{ 
+                    width: '8vw', height: '8vw', 
+                    maxWidth: '120px', maxHeight: '120px'
+                }}
             >
-              <span className="relative z-10 select-none pointer-events-none max-w-[80%]">
-                INITIATE<br/>CALIBRATION
-              </span>
-              {isOrbHovered && (
-                <svg 
-                    className="absolute inset-0 w-full h-full overflow-hidden rounded-full pointer-events-none z-0" 
-                    viewBox={`0 0 ${orbRef.current?.offsetWidth || 192} ${orbRef.current?.offsetHeight || 192}`}
-                    preserveAspectRatio="none"
-                >
-                  {lightningArcs.map(arc => (
-                    <path 
-                        key={arc.id} 
-                        d={arc.d} 
-                        stroke="#00FFFF" 
-                        strokeWidth="1" 
-                        fill="none" 
-                        className="animate-lightning-arc-fade" 
-                        style={{ strokeLinecap: 'round', strokeDasharray: '500', strokeDashoffset: '500' }} 
-                    />
-                  ))}
-                </svg>
-              )}
-              <div 
-                ref={orbClickFlashRef}
-                className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full pointer-events-none opacity-0 z-20"
-              ></div>
+                {/* Layer 2: Atmosphere */}
+                <div className="orb-layer-2-atmosphere"></div>
+                
+                {/* Layer 3: Core */}
+                <div 
+                    ref={orbCoreRef}
+                    className={`orb-layer-3-core ${isOrbHovered ? 'orb-layer-3-core-hover' : ''}`}
+                ></div>
+
+                {/* Lightning Arcs SVG - positioned relative to core size */}
+                {isOrbHovered && orbRef.current && (
+                    <svg 
+                        className="orb-lightning-svg"
+                        viewBox={`0 0 ${orbRef.current.offsetWidth} ${orbRef.current.offsetHeight}`} // SVG viewbox matches orb container
+                        preserveAspectRatio="xMidYMid meet"
+                    >
+                    {lightningArcs.map(arc => (
+                        <path 
+                            key={arc.id} 
+                            d={arc.d} 
+                            stroke="#FFFFFF" // White-hot
+                            strokeWidth="0.7" // Thin and sharp
+                            fill="none" 
+                            className="animate-lightning-arc-fade" 
+                            style={{ 
+                                strokeLinecap: 'round', 
+                                strokeDasharray: '200', strokeDashoffset: '200', // For sharp appearance
+                                filter: 'drop-shadow(0 0 1px #FFFFFF) drop-shadow(0 0 2px #FFFFF0)', // Subtle glow for arcs
+                                ...(arc.style || {})
+                            }} 
+                        />
+                    ))}
+                    </svg>
+                )}
+                
+                {/* Layer 4: Surface Lens */}
+                <div className="orb-layer-4-lens"></div>
+
+                {/* Layer 5: Text */}
+                <span className="orb-layer-5-text">
+                    INITIATE<br/>CALIBRATION
+                </span>
+
+                {/* Click Flash Element */}
+                <div 
+                    ref={orbClickFlashRef}
+                    className="orb-click-flash-element"
+                ></div>
             </button>
-          </div>
 
           <button
             onClick={onMapDataStream}
