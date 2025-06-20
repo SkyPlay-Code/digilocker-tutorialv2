@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -87,6 +87,9 @@
     .font-exo2-bold {
       font-family: 'Exo 2', sans-serif;
       font-weight: 700;
+    }
+    .font-roboto-mono {
+      font-family: 'Roboto Mono', monospace;
     }
         
     .title-impact-flash-container {
@@ -251,7 +254,10 @@
     }
     .gravity-well-container.fade-out {
       opacity: 0;
-      pointer-events: none;
+      /* pointer-events: none; -- managed by hidden class */
+    }
+     .gravity-well-container.hidden {
+      display: none;
     }
     .gravity-well-canvas {
       width: 50px; /* Vortex particle area */
@@ -273,6 +279,88 @@
       box-shadow: 0 0 2px 1px rgba(0, 191, 255, 0.2); /* Subtle edge to define it */
     }
 
+    /* Data Core Environment & HUD Styles */
+    .data-core-hud-element {
+      font-family: 'Roboto Mono', monospace;
+      color: #00FFFF;
+      text-shadow: 0 0 3px #00FFFF, 0 0 5px rgba(0, 255, 255, 0.5);
+      opacity: 0; /* Initial state for animation */
+    }
+
+    .hud-line {
+      background-color: #00FFFF;
+      box-shadow: 0 0 3px #00FFFF;
+      opacity: 0; /* Initial state for animation */
+    }
+    
+    .animate-hud-line-draw { animation: hud-line-draw 0.7s forwards; }
+    .animate-hud-text-flicker { animation: hud-text-flicker 0.5s forwards; }
+
+    @keyframes hud-line-draw {
+      0% { transform: scaleX(0); opacity: 0.5; }
+      100% { transform: scaleX(1); opacity: 1; }
+    }
+
+    @keyframes hud-text-flicker {
+      0%, 20%, 40%, 60%, 80%, 100% { opacity: 1; transform: translateY(0); }
+      10%, 50% { opacity: 0.3; transform: translateY(-1px); }
+      30%, 70%, 90% { opacity: 0.6; transform: translateY(1px) translateX(1px); }
+    }
+    
+    .holographic-video-player {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scaleY(0.01); /* Initial state: collapsed line */
+      width: 70vw; /* Adjust as needed */
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+      background-color: black;
+      border: 2px solid #00FFFF;
+      box-shadow: 0 0 10px #00FFFF, 0 0 20px rgba(0,255,255,0.5), inset 0 0 8px rgba(0,255,255,0.3);
+      opacity: 0;
+      overflow: hidden; /* Ensure video stays within bounds */
+    }
+
+    .animate-video-player-materialize { animation: video-player-materialize 0.5s forwards; }
+    @keyframes video-player-materialize {
+      0% { transform: translate(-50%, -50%) scaleY(0.01) scaleX(0.8); opacity: 0.5; border-width: 1px;}
+      100% { transform: translate(-50%, -50%) scaleY(1) scaleX(1); opacity: 1; border-width: 2px;}
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 8px; /* Thin bar */
+        background-color: rgba(0, 255, 255, 0.1); /* Faint track */
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background-color: #00FFFF;
+        box-shadow: 0 0 5px #00FFFF, 0 0 10px rgba(0,255,255,0.7);
+        border-radius: 4px;
+        transition: width 0.2s linear; /* Smooth progress update */
+    }
+    .fullscreen-flash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: white;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 99999; /* Highest */
+    }
+    .animate-screen-flash { animation: screen-flash-anim 0.3s ease-out forwards; }
+    @keyframes screen-flash-anim {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+
   </style>
   <script>
     tailwind.config = {
@@ -281,6 +369,7 @@
           fontFamily: {
             orbitron: ['Orbitron', 'sans-serif'],
             exo2: ['Exo 2', 'sans-serif'],
+            'roboto-mono': ['Roboto Mono', 'monospace'],
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
@@ -311,6 +400,12 @@
             /* Data Stream Button Animations */
             'shimmer-effect': 'shimmer-effect-keyframes 4s linear infinite',
             'starchart-pan-effect': 'starchart-pan-effect-keyframes 20s linear infinite',
+
+            /* HUD & Video Player Animations */
+            'hud-line-draw': 'hud-line-draw 0.7s forwards',
+            'hud-text-flicker': 'hud-text-flicker 0.5s forwards',
+            'video-player-materialize': 'video-player-materialize 0.5s forwards',
+            'screen-flash': 'screen-flash-anim 0.3s ease-out forwards',
           },
           keyframes: {
             spark: {
@@ -433,6 +528,25 @@
               '0%': { transform: 'translateX(0%)' },
               '100%': { transform: 'translateX(-50%)' }, 
             },
+             /* HUD & Video Player Animations */
+            'hud-line-draw': {
+              '0%': { transform: 'scaleX(0)', opacity: '0.5' },
+              '100%': { transform: 'scaleX(1)', opacity: '1' }
+            },
+            'hud-text-flicker': {
+              '0%, 20%, 40%, 60%, 80%, 100%': { opacity: '1', transform: 'translateY(0) translateX(0)' },
+              '10%, 50%': { opacity: '0.3', transform: 'translateY(-1px) translateX(-0.5px)' },
+              '30%, 70%, 90%': { opacity: '0.6', transform: 'translateY(1px) translateX(0.5px)' }
+            },
+            'video-player-materialize': {
+              '0%': { transform: 'translate(-50%, -50%) scaleY(0.01) scaleX(0.8)', opacity: '0.5', borderWidth: '1px'},
+              '100%': { transform: 'translate(-50%, -50%) scaleY(1) scaleX(1)', opacity: '1', borderWidth: '2px'}
+            },
+            'screen-flash-anim': {
+              '0%': { opacity: '0' },
+              '50%': { opacity: '1' },
+              '100%': { opacity: '0' }
+            }
           },
           colors: {
             cyan: {
@@ -486,7 +600,8 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
     "react/": "https://esm.sh/react@^19.1.0/",
     "three": "https://esm.sh/three@0.160.0",
-    "three/": "https://esm.sh/three@0.160.0/"
+    "three/": "https://esm.sh/three@0.160.0/",
+    "gsap": "https://esm.sh/gsap@3.12.5"
   }
 }
 </script>
@@ -494,6 +609,7 @@
 </head>
 <body class="bg-black font-orbitron scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-indigo-900/50 scrollbar-webkit">
   <div id="root"></div>
+  <div id="fullscreen-flash-container" class="fullscreen-flash"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

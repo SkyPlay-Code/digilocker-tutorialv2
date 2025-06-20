@@ -1,12 +1,13 @@
 
 export enum AppView {
   Hero,
-  Calibration,
-  DataMap, // If DataMap becomes a separate view rather than a scroll section
+  Calibration, // Existing step-by-step calibration form
+  DataMap, 
+  DataCoreEnvironment, // New environment for video tutorial after Orb transition
 }
 
 export enum CalibrationModule {
-  Intro, // Not explicitly used as a UI state, but good for logic
+  Intro, 
   Authentication,
   DocumentUpload,
   PinEncryption,
@@ -17,7 +18,7 @@ export interface KeyPoint {
   id: string;
   title: string;
   description: string;
-  timestamp: string; // e.g., "0:07"
+  timestamp: string; 
   moduleTarget?: CalibrationModule; 
 }
 
@@ -29,4 +30,3 @@ export interface ParticleStyle {
   size: string;
   opacity: number;
 }
-    

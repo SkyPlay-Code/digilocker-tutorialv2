@@ -6,29 +6,42 @@ import DataStreamMap from './components/DataStreamMap';
 import ShareSection from './components/ShareSection';
 import ArchivesSection from './components/ArchivesSection';
 import Footer from './components/Footer';
+import DataCoreEnvironment from './components/DataCoreEnvironment'; // New Import
 import { AppView, CalibrationModule } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.Hero);
-  // For CalibrationSequence, jumpToModule is used when navigating from DataStreamMap
   const [calibrationStartModule, setCalibrationStartModule] = useState<CalibrationModule | undefined>(undefined);
 
   const dataStreamMapRef = useRef<HTMLElement>(null);
-  const archivesRef = useRef<HTMLElement>(null); // Example if direct scroll needed
+  const archivesRef = useRef<HTMLElement>(null);
 
   const handleInitiateCalibration = useCallback(() => {
-    setCalibrationStartModule(undefined); // Start from the beginning
-    setCurrentView(AppView.Calibration);
-    window.scrollTo(0,0); // Scroll to top for calibration view
+    // This will now be handled by HeroSection triggering onTransitionToDataCoreComplete
+    // For now, let HeroSection manage its internal transition state.
+    // setCurrentView might be set by onTransitionToDataCoreComplete
+    // If you still need the old calibration:
+    // setCalibrationStartModule(undefined); 
+    // setCurrentView(AppView.Calibration);
+    // window.scrollTo(0,0); 
+  }, []);
+  
+  const handleTransitionToDataCoreComplete = useCallback(() => {
+    setCurrentView(AppView.DataCoreEnvironment);
+    window.scrollTo(0,0);
   }, []);
 
   const handleCloseCalibration = useCallback(() => {
-    setCurrentView(AppView.Hero); // Or to a different section if preferred
+    setCurrentView(AppView.Hero); 
   }, []);
 
+  // This is for the OLD CalibrationSequence. The new environment has its own video.
+  const handleCloseDataCoreEnvironment = useCallback(() => {
+    setCurrentView(AppView.Hero);
+  }, []);
+
+
   const handleMapDataStream = useCallback(() => {
-    // Scrolls to the DataStreamMap section if it's part of the main page flow
-    // If DataStreamMap is a separate view, this would change setCurrentView
     if (dataStreamMapRef.current) {
       dataStreamMapRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -36,14 +49,13 @@ const App: React.FC = () => {
 
   const handleJumpToSimulation = useCallback((module: CalibrationModule) => {
     setCalibrationStartModule(module);
-    setCurrentView(AppView.Calibration);
+    setCurrentView(AppView.Calibration); // This still points to the old form-based calibration
     window.scrollTo(0,0);
   }, []);
   
   useEffect(() => {
-    // If returning from calibration, ensure Hero is the default view if not otherwise specified
     if(currentView === AppView.Hero) {
-       // Potentially reset scroll or other states if needed
+       // Reset scroll or other states if needed
     }
   }, [currentView]);
 
@@ -57,14 +69,23 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Main page content, conditionally rendered or always present and scrolled to */}
-      <div className={currentView === AppView.Calibration ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 transition-opacity duration-500'}>
+      {currentView === AppView.DataCoreEnvironment && (
+        <DataCoreEnvironment onClose={handleCloseDataCoreEnvironment} />
+      )}
+      
+      <div 
+        className={
+          currentView === AppView.Calibration || currentView === AppView.DataCoreEnvironment 
+          ? 'opacity-0 pointer-events-none h-0 overflow-hidden' 
+          : 'opacity-100 transition-opacity duration-500'
+        }
+      >
         <HeroSection 
-          onInitiateCalibration={handleInitiateCalibration}
+          onInitiateCalibration={handleInitiateCalibration} // Orb click will now start internal transition
+          onTransitionToDataCoreComplete={handleTransitionToDataCoreComplete} // New prop
           onMapDataStream={handleMapDataStream}
         />
         
-        {/* Wrap sections that need refs for scrolling */}
         <section ref={dataStreamMapRef}>
             <DataStreamMap onJumpToSimulation={handleJumpToSimulation} />
         </section>
@@ -82,4 +103,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-    
