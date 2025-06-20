@@ -109,7 +109,7 @@
     .title-stable-styling { /* Final text styling after animation */
       color: #FFFFFF; /* Solid white text */
       /* Pulsing blue inner glow applied by pulsing-blue-text-glow animation */
-      animation: pulsing-blue-text-glow 2s infinite ease-in-out;
+      animation: pulsing-blue-text-glow-anim 2s infinite ease-in-out;
       opacity: 1; /* Ensure it's visible */
     }
 
@@ -141,6 +141,16 @@
       display: inline-block; /* For transform */
     }
 
+    /* Orb specific styles */
+    .orb-glow-default {
+      filter: drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 15px rgba(0,191,255,0.7));
+      /* opacity: 0.9; Initial values that pulse animation will vary */
+    }
+     .orb-glow-hover {
+      filter: drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px rgba(0,191,255,0.8));
+    }
+
+
   </style>
   <script>
     tailwind.config = {
@@ -152,35 +162,38 @@
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
-            'pulse-orb': 'pulse-orb-animation 2s infinite',
+            // 'pulse-orb': 'pulse-orb-animation 2s infinite', /* Old pulse for button, replaced by orb-glow-pulse if orb takes over */
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
             'fadeIn': 'fadeIn 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
             'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out',
-            // Old title animations (construct-char, impact-flash) will be replaced or modified
-            // 'construct-char': 'construct-char-anim 0.4s ease-out forwards', 
-            // 'impact-flash': 'impact-flash-anim 0.2s ease-out forwards', // Old general flash
-            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out', // Old general glow
+            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out', 
             'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards',
 
-            // New animations for title sequence
             'shard-ingress': 'shard-ingress-anim 1s ease-out forwards',
             'shard-swarm': 'shard-swarm-anim 1s linear infinite alternate',
             'shard-coalesce': 'shard-coalesce-anim 0.3s ease-in forwards',
-            'text-snap-in': 'text-snap-in-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards', // Fast with overshoot
-            'title-impact-flash-main': 'title-impact-flash-main-anim 0.3s ease-out forwards', // Main title impact
-            'pulsing-blue-text-glow': 'pulsing-blue-text-glow-anim 2s infinite ease-in-out', // For final text
+            'text-snap-in': 'text-snap-in-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards', 
+            'title-impact-flash-main': 'title-impact-flash-main-anim 0.3s ease-out forwards', 
+            'pulsing-blue-text-glow': 'pulsing-blue-text-glow-anim 2s infinite ease-in-out',
+
+            /* New Orb Animations */
+            'orb-glow-pulse': 'orb-glow-pulse-keyframe 3s infinite ease-in-out',
+            'orb-glow-flicker': 'orb-glow-flicker-keyframe 0.7s infinite linear',
+            'orb-vibration': 'orb-vibration-keyframe 0.1s infinite linear',
+            'lightning-arc-fade': 'lightning-arc-fade-keyframe 0.4s ease-out forwards',
+            'orb-click-flash': 'orb-click-flash-keyframe 0.3s ease-out forwards',
           },
           keyframes: {
             spark: {
               '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
               '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
             },
-            'pulse-orb-animation': {
+            /* 'pulse-orb-animation': { // Old button pulse, might be removed if not used by other button
               '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' },
               '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
-            },
+            }, */
             typewriter: {
                 from: { width: '0' },
                 to: { width: '100%' }
@@ -202,18 +215,17 @@
               '0%, 100%': { opacity: 0.7, transform: 'scale(1)' },
               '50%': { opacity: 1, transform: 'scale(1.1)' },
             },
-            // Old title keyframes - review if needed, likely replaced by new ones
-            'construct-char-anim': { /* Kept if used elsewhere, but not for main title anim */
+            'construct-char-anim': { 
               '0%': { opacity: '0', transform: 'scale(0.1) rotate(30deg)', color: '#00BFFF' },
               '70%': { opacity: '1', transform: 'scale(1.15) rotate(-5deg)', color: '#00BFFF' },
               '100%': { opacity: '1', transform: 'scale(1) rotate(0deg)', color: '#FFFFFF' },
             },
-            'impact-flash-anim': { /* Old general flash, new one is title-impact-flash-main */
+            'impact-flash-anim': { 
               '0%': { opacity: '0.7', boxShadow: '0 0 10px 5px white, 0 0 20px 10px white, 0 0 40px 20px rgba(255,255,255,0.7)' },
               '50%': { opacity: '1', boxShadow: '0 0 20px 10px white, 0 0 40px 20px white, 0 0 80px 40px rgba(255,255,255,0.7)' },
               '100%': { opacity: '0', boxShadow: 'none' },
             },
-            'pulsing-blue-glow-anim': { /* Old general glow for elements */
+            'pulsing-blue-glow-anim': { 
               '0%, 100%': { 
                 textShadow: '0 0 2px #fff, 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 16px #00BFFF' 
               },
@@ -225,42 +237,72 @@
               '0%': { opacity: 'var(--ember-initial-opacity, 1)', transform: 'translate(0, 0) scale(1)' },
               '100%': { opacity: '0', transform: 'translate(var(--ember-tx, 0px), var(--ember-ty, 0px)) scale(0.3)' },
             },
-
-            // New keyframes for title shards & text
             'shard-ingress-anim': {
               '0%': { opacity: '0', transform: 'translate(var(--shard-ix), var(--shard-iy)) scale(0.2) rotate(var(--shard-ir))' },
               '60%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1.2) rotate(0deg)' },
               '100%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1) rotate(0deg)' }
             },
-            'shard-swarm-anim': { // Applied after ingress, runs for the swarm duration
+            'shard-swarm-anim': { 
               '0%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
               '25%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx1)), calc(var(--shard-cy) + var(--swarm-dy1))) rotate(var(--swarm-r1)) scale(0.9)' },
               '50%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx2)), calc(var(--shard-cy) + var(--swarm-dy2))) rotate(var(--swarm-r2)) scale(1.1)' },
               '75%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx3)), calc(var(--shard-cy) + var(--swarm-dy3))) rotate(var(--swarm-r3)) scale(0.95)' },
               '100%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
             },
-            'shard-coalesce-anim': { // Shards disappear
+            'shard-coalesce-anim': { 
               '0%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1)' },
-              '100%': { opacity: '0', transform: 'translate(var(--shard-finalx), var(--shard-finaly)) scale(0.1)' } // Fly towards text then vanish
+              '100%': { opacity: '0', transform: 'translate(var(--shard-finalx), var(--shard-finaly)) scale(0.1)' } 
             },
             'text-snap-in-anim': {
-              '0%': { opacity: '0', transform: 'scale(1.8) rotateX(-30deg)', color: '#00BFFF' }, // Start larger, slightly tilted, blueish
-              '70%': { opacity: '1', transform: 'scale(0.9) rotateX(10deg)', color: '#CCFFFF' }, // Overshoot small
-              '100%': { opacity: '1', transform: 'scale(1) rotateX(0deg)', color: '#FFFFFF' } // Settle to white
+              '0%': { opacity: '0', transform: 'scale(1.8) rotateX(-30deg)', color: '#00BFFF' }, 
+              '70%': { opacity: '1', transform: 'scale(0.9) rotateX(10deg)', color: '#CCFFFF' }, 
+              '100%': { opacity: '1', transform: 'scale(1) rotateX(0deg)', color: '#FFFFFF' } 
             },
-            'title-impact-flash-main-anim': { // Flash for main title assembly
+            'title-impact-flash-main-anim': { 
               '0%': { opacity: '0.8', transform: 'scale(1.5)', backgroundColor: 'white' },
-              '50%': { opacity: '1', transform: 'scale(2.5)', backgroundColor: 'white' }, // Brighter, larger
+              '50%': { opacity: '1', transform: 'scale(2.5)', backgroundColor: 'white' }, 
               '100%': { opacity: '0', transform: 'scale(0.5)', backgroundColor: 'white' }
             },
-            'pulsing-blue-text-glow-anim': { // For final text
+            'pulsing-blue-text-glow-anim': { 
               '0%, 100%': { 
                 textShadow: '0 0 3px #fff, 0 0 5px #00BFFF, 0 0 10px #00BFFF, 0 0 15px #00BFFF' 
               },
               '50%': { 
                 textShadow: '0 0 5px #fff, 0 0 10px #00BFFF, 0 0 20px #00BFFF, 0 0 30px #00BFFF, 0 0 40px #00BFFF' 
               },
-            }
+            },
+            /* Orb Animations */
+            'orb-glow-pulse-keyframe': {
+              '0%, 100%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 15px rgba(0,191,255,0.6)) opacity(0.85) saturate(1.0)', transform: 'scale(1)' },
+              '50%': { filter: 'drop-shadow(0 0 14px #00BFFF) drop-shadow(0 0 22px rgba(0,191,255,0.8)) opacity(1) saturate(1.2)', transform: 'scale(1.03)' },
+            },
+            'orb-glow-flicker-keyframe': {
+                '0%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 15px rgba(0,191,255,0.7)) opacity(0.9)' },
+                '15%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 18px rgba(0,191,255,0.8)) opacity(1.0)' },
+                '30%': { filter: 'drop-shadow(0 0 9px #00BFFF) drop-shadow(0 0 14px rgba(0,191,255,0.65)) opacity(0.85)' },
+                '45%': { filter: 'drop-shadow(0 0 13px #00BFFF) drop-shadow(0 0 20px rgba(0,191,255,0.75)) opacity(0.95)' },
+                '60%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 16px rgba(0,191,255,0.7)) opacity(0.9)' },
+                '75%': { filter: 'drop-shadow(0 0 11px #00BFFF) drop-shadow(0 0 17px rgba(0,191,255,0.6)) opacity(0.8)' },
+                '100%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 15px rgba(0,191,255,0.7)) opacity(0.9)' },
+            },
+            'orb-vibration-keyframe': {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0)' },
+                '20%': { transform: 'translate(0.5px, -0.5px) rotate(0.1deg)' },
+                '40%': { transform: 'translate(-0.5px, 0.5px) rotate(-0.1deg)' },
+                '60%': { transform: 'translate(0.5px, 0.5px) rotate(0.05deg)' },
+                '80%': { transform: 'translate(-0.5px, -0.5px) rotate(-0.05deg)' },
+            },
+            'lightning-arc-fade-keyframe': {
+                '0%': { opacity: '0', strokeDashoffset: '1000' },
+                '20%': { opacity: '1', strokeDashoffset: '800' },
+                '80%': { opacity: '1', strokeDashoffset: '0' },
+                '100%': { opacity: '0', strokeDashoffset: '0' },
+            },
+            'orb-click-flash-keyframe': {
+                '0%': { transform: 'scale(0.1)', opacity: '0' },
+                '30%': { transform: 'scale(1)', opacity: '1' }, /* Flash appears and covers orb */
+                '100%': { transform: 'scale(1.5)', opacity: '0' }, /* Flash expands and fades */
+            },
           },
           colors: {
             cyan: {

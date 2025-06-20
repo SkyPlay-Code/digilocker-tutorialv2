@@ -20,7 +20,7 @@ const ChromaticAberrationShader = {
   uniforms: {
     tDiffuse: { value: null },
     resolution: { value: new THREE.Vector2() },
-    power: { value: 0.0015 } // Slightly adjusted power
+    power: { value: 0.0015 } 
   },
   vertexShader: `
     varying vec2 vUv;
@@ -45,8 +45,12 @@ const ChromaticAberrationShader = {
 };
 
 type TitleAnimationPhase = 'idle' | 'shardsEntering' | 'shardsSwarming' | 'textForming' | 'stable';
-
 const NUM_TITLE_SHARDS = 60; 
+
+interface LightningArc {
+  id: string;
+  d: string;
+}
 
 const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapDataStream }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -68,18 +72,25 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
 
   const [titleShards, setTitleShards] = useState<{ id: number; style: React.CSSProperties }[]>([]);
 
+  // Orb State
+  const [isOrbHovered, setIsOrbHovered] = useState(false);
+  const [lightningArcs, setLightningArcs] = useState<LightningArc[]>([]);
+  const lightningIntervalRef = useRef<number | null>(null);
+  const orbRef = useRef<HTMLButtonElement>(null);
+  const orbClickFlashRef = useRef<HTMLDivElement>(null);
+  const [orbClicked, setOrbClicked] = useState(false);
+
+
   useEffect(() => {
     const newShards = Array.from({ length: NUM_TITLE_SHARDS }).map((_, i) => {
       const angle = Math.random() * Math.PI * 2;
-      const radius = Math.random() * 60 + 110; // Start further out, vw/vh units
+      const radius = Math.random() * 60 + 110; 
       const initialX = `${Math.cos(angle) * radius}vw`;
       const initialY = `${Math.sin(angle) * radius}vh`;
       const initialRotation = `${Math.random() * 360 - 180}deg`;
       
       const targetCenterX = `calc(50% + ${Math.random() * 100 - 50}px)`; 
-      // Adjust Y target for title at top 25%
       const targetCenterY = `calc(25% + ${Math.random() * 80 - 40}px)`; 
-
 
       return {
         id: i,
@@ -108,7 +119,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
       return () => clearTimeout(startTimer);
     }
     if (titleAnimationPhase === 'shardsEntering') {
-      const swarmTimer = setTimeout(() => setTitleAnimationPhase('shardsSwarming'), 1000 + 500);
+      const swarmTimer = setTimeout(() => setTitleAnimationPhase('shardsSwarming'), 1000 + 500); 
       return () => clearTimeout(swarmTimer);
     }
     if (titleAnimationPhase === 'shardsSwarming') {
@@ -130,19 +141,101 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     }
     if (titleAnimationPhase === 'stable') {
       setShowEmbers(true);
-      // Embers can persist
     }
   }, [titleAnimationPhase]);
-
 
   useEffect(() => {
     if (typedSubtitle.length < fullSubtitle.length) {
       const timer = setTimeout(() => {
         setTypedSubtitle(fullSubtitle.substring(0, typedSubtitle.length + 1));
-      }, 70); // Slightly faster typing
+      }, 70); 
       return () => clearTimeout(timer);
     }
   }, [typedSubtitle, fullSubtitle]);
+
+  // Orb effects
+  const generateLightningArcPath = (orbRadius: number): string => {
+    const angleStart = Math.random() * Math.PI * 2;
+    const startX = orbRadius + Math.cos(angleStart) * orbRadius;
+    const startY = orbRadius + Math.sin(angleStart) * orbRadius;
+
+    // End on the orb's boundary for simplicity (arcs contained within orb button)
+    const angleEnd = Math.random() * Math.PI * 2;
+    let endX = orbRadius + Math.cos(angleEnd) * orbRadius;
+    let endY = orbRadius + Math.sin(angleEnd) * orbRadius;
+
+    // Ensure arcs are not too small
+    if (Math.hypot(endX - startX, endY - startY) < orbRadius / 2) {
+        endX = orbRadius + Math.cos(angleEnd + Math.PI/2) * orbRadius;
+        endY = orbRadius + Math.sin(angleEnd + Math.PI/2) * orbRadius;
+    }
+    
+    const midPoints = [];
+    const numSegments = Math.floor(Math.random() * 2) + 2; // 2-3 jagged segments
+    for (let i = 1; i < numSegments; i++) {
+        const t = i / numSegments;
+        const baseX = startX + (endX - startX) * t;
+        const baseY = startY + (endY - startY) * t;
+        const offsetX = (Math.random() - 0.5) * (orbRadius * 0.3);
+        const offsetY = (Math.random() - 0.5) * (orbRadius * 0.3);
+        midPoints.push(`${baseX + offsetX},${baseY + offsetY}`);
+    }
+    return `M${startX},${startY} L${midPoints.join(' L')} L${endX},${endY}`;
+  };
+
+  useEffect(() => {
+    if (isOrbHovered) {
+      if (lightningIntervalRef.current) clearInterval(lightningIntervalRef.current);
+      lightningIntervalRef.current = window.setInterval(() => {
+        if (!orbRef.current) return;
+        const orbRadius = orbRef.current.offsetWidth / 2;
+        const newArcs: LightningArc[] = [];
+        const arcCount = Math.floor(Math.random() * 2) + 2; // 2-3 arcs
+        for (let i = 0; i < arcCount; i++) {
+          newArcs.push({
+            id: `arc-${Date.now()}-${i}`,
+            d: generateLightningArcPath(orbRadius),
+          });
+        }
+        setLightningArcs(newArcs);
+      }, 400); // Generate new arcs every 400ms
+    } else {
+      if (lightningIntervalRef.current) {
+        clearInterval(lightningIntervalRef.current);
+        lightningIntervalRef.current = null;
+      }
+      setLightningArcs([]);
+    }
+    return () => {
+      if (lightningIntervalRef.current) clearInterval(lightningIntervalRef.current);
+    };
+  }, [isOrbHovered]);
+
+
+  const handleOrbMouseDown = () => {
+    if (orbRef.current) {
+        orbRef.current.style.transform = 'scale(0.9)';
+    }
+    if (orbClickFlashRef.current) {
+        orbClickFlashRef.current.classList.remove('animate-orb-click-flash');
+        void orbClickFlashRef.current.offsetWidth; // Trigger reflow
+        orbClickFlashRef.current.classList.add('animate-orb-click-flash');
+    }
+  };
+  const handleOrbMouseUp = () => {
+     if (orbRef.current && !orbClicked) { // Prevent scale back if click animation started
+        orbRef.current.style.transform = 'scale(1)';
+    }
+  };
+   const handleOrbClick = () => {
+    setOrbClicked(true); // Indicate click processing
+    // Visual feedback already handled by mousedown.
+    // Call the main action.
+    onInitiateCalibration();
+    // Reset orb state after a short delay if needed, or App.tsx handles view change
+    // setTimeout(() => setOrbClicked(false), 1000); 
+  };
+
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -155,7 +248,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setClearColor(0x000000, 1); // Ensure background is black
+    renderer.setClearColor(0x000000, 1); 
     currentMount.appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); 
@@ -164,7 +257,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     directionalLight.position.set(5,10,7);
     scene.add(directionalLight);
 
-
     const vaultGroup = new THREE.Group();
     scene.add(vaultGroup);
 
@@ -172,111 +264,67 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const coreMaterial = new THREE.MeshBasicMaterial({ 
         color: 0x00BFFF, 
         transparent: true, 
-        opacity: 0.85, // Slightly more opaque core
+        opacity: 0.85, 
      });
     const energyCore = new THREE.Mesh(coreGeometry, coreMaterial);
     (energyCore.material as THREE.MeshBasicMaterial).userData = { baseEmissiveIntensity: 1.5, pulseSpeed: Math.PI / 2 }; 
     vaultGroup.add(energyCore);
 
-    // New "Elegant Complexity" points generation for Obsidian/Bismuth fusion
     const points: THREE.Vector3[] = [];
-    const RGen = (yLevel: number, angle: number, variance: number = 0.3) => {
+    const RGen = (yLevel: number, angle: number) => {
         return 8 + Math.sin(yLevel * 0.2 + angle * 3) * 2.5 + Math.cos(angle * 2 + yLevel * 0.1) * 2;
     };
-
-    const yLevels = [-10, -6, -2, 2, 6, 10]; // Defines layers of points
-    const pointsPerLevel = 6; // More points for complex faceting
-    
+    const yLevels = [-10, -6, -2, 2, 6, 10]; 
+    const pointsPerLevel = 6; 
     yLevels.forEach((y, yIdx) => {
         for (let i = 0; i < pointsPerLevel; i++) {
-            const angle = (i / pointsPerLevel) * Math.PI * 2 + (yIdx * 0.45); // Stagger angle per level for faceting
+            const angle = (i / pointsPerLevel) * Math.PI * 2 + (yIdx * 0.45); 
             const baseRadius = RGen(y, angle);
-            const radius = baseRadius * (1 + (Math.random() - 0.5) * 0.15); // Slight randomness to radius
-            points.push(new THREE.Vector3(
-                Math.cos(angle) * radius,
-                y + (Math.random() - 0.5) * 1.5, // Slight y variation for asymmetry
-                Math.sin(angle) * radius
-            ));
+            const radius = baseRadius * (1 + (Math.random() - 0.5) * 0.15); 
+            points.push(new THREE.Vector3( Math.cos(angle) * radius, y + (Math.random() - 0.5) * 1.5, Math.sin(angle) * radius ));
         }
     });
-
-    // Add prominent spire/facet points for sharpness (Obsidian influence)
-    points.push(new THREE.Vector3(0, 15, 0)); // Top spire
-    points.push(new THREE.Vector3(0, -15, 0)); // Bottom spire
-    points.push(new THREE.Vector3(12, Math.random()*4 - 2, Math.random()*4 - 2));
-    points.push(new THREE.Vector3(-12, Math.random()*4 - 2, Math.random()*4 - 2));
-    points.push(new THREE.Vector3(Math.random()*4 - 2, 10, Math.random()*4 - 2));
-    points.push(new THREE.Vector3(Math.random()*4 - 2, -10, Math.random()*4 - 2));
-    points.push(new THREE.Vector3(Math.random()*3-1.5, Math.random()*3-1.5, 13));
-    points.push(new THREE.Vector3(Math.random()*3-1.5, Math.random()*3-1.5, -13));
-
+    points.push(new THREE.Vector3(0, 15, 0)); points.push(new THREE.Vector3(0, -15, 0));
+    points.push(new THREE.Vector3(12, Math.random()*4 - 2, Math.random()*4 - 2)); points.push(new THREE.Vector3(-12, Math.random()*4 - 2, Math.random()*4 - 2));
+    points.push(new THREE.Vector3(Math.random()*4 - 2, 10, Math.random()*4 - 2)); points.push(new THREE.Vector3(Math.random()*4 - 2, -10, Math.random()*4 - 2));
+    points.push(new THREE.Vector3(Math.random()*3-1.5, Math.random()*3-1.5, 13)); points.push(new THREE.Vector3(Math.random()*3-1.5, Math.random()*3-1.5, -13));
 
     const vaultShellGeometry = new ConvexGeometry(points);
     vaultShellGeometry.computeVertexNormals(); 
 
     const vaultShellMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x90C8E8, // Lighter, slightly more ethereal blue/grey for shell
-      metalness: 0.1,
-      roughness: 0.05, // Very smooth for glass/obsidian look
-      transmission: 0.96, 
-      ior: 2.33, // High IOR for strong refraction (like diamond, for effect)
-      thickness: 6, 
-      transparent: true,
-      opacity: 0.65, // Shell itself is semi-transparent, not fully solid
-      side: THREE.DoubleSide,
-      envMapIntensity: 0.8,
-      depthWrite: false,
-      // No emissive properties for the shell itself
+      color: 0x90C8E8, metalness: 0.1, roughness: 0.05, transmission: 0.96, ior: 2.33, thickness: 6, 
+      transparent: true, opacity: 0.65, side: THREE.DoubleSide, envMapIntensity: 0.8, depthWrite: false,
     });
     const userVaultShell = new THREE.Mesh(vaultShellGeometry, vaultShellMaterial);
     vaultGroup.add(userVaultShell);
 
     const pathwayMaterial = new THREE.MeshBasicMaterial({ color: 0x00BFFF, transparent: true, opacity: 0.25, side:THREE.DoubleSide });
     (pathwayMaterial as THREE.MeshBasicMaterial).userData = { baseOpacity: 0.25 };
-    const internalPathways: THREE.Mesh[] = [];
-    const numPathways = 7; // Fewer, more distinct pathways
+    const internalPathways: THREE.Mesh[] = []; const numPathways = 7; 
     const shellVertices = (vaultShellGeometry.attributes.position.array as Float32Array);
-
     for (let i = 0; i < numPathways; i++) {
-        const startPoint = new THREE.Vector3( // Start near core, but slightly offset
-            (Math.random() - 0.5) * 1.5, 
-            (Math.random() - 0.5) * 1.5,
-            (Math.random() - 0.5) * 1.5
-        );
+        const startPoint = new THREE.Vector3( (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5 );
         const randomVertexIndex = Math.floor(Math.random() * (shellVertices.length / 3)) * 3;
-        const endPoint = new THREE.Vector3(
-            shellVertices[randomVertexIndex],
-            shellVertices[randomVertexIndex + 1],
-            shellVertices[randomVertexIndex + 2]
-        ).multiplyScalar(0.85); // End point slightly inside the shell
-
+        const endPoint = new THREE.Vector3( shellVertices[randomVertexIndex], shellVertices[randomVertexIndex + 1], shellVertices[randomVertexIndex + 2] ).multiplyScalar(0.85); 
         const direction = new THREE.Vector3().subVectors(endPoint, startPoint);
-        const pathwayGeom = new THREE.CylinderGeometry(0.1, 0.1, direction.length(), 6, 1); // Thinner pathways
+        const pathwayGeom = new THREE.CylinderGeometry(0.1, 0.1, direction.length(), 6, 1); 
         pathwayGeom.applyMatrix4(new THREE.Matrix4().makeTranslation(0, direction.length() / 2, 0));
         pathwayGeom.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
-        
         const pathway = new THREE.Mesh(pathwayGeom, pathwayMaterial.clone());
-        pathway.position.copy(startPoint);
-        pathway.lookAt(endPoint);
-        internalPathways.push(pathway);
-        vaultGroup.add(pathway);
+        pathway.position.copy(startPoint); pathway.lookAt(endPoint);
+        internalPathways.push(pathway); vaultGroup.add(pathway);
     }
-    
-    const fractureMaterial = new THREE.MeshBasicMaterial({ color: 0x87CEFA, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false }); // Fainter fractures
+    const fractureMaterial = new THREE.MeshBasicMaterial({ color: 0x87CEFA, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false }); 
     const numFractures = 4;
     for (let i = 0; i < numFractures; i++) {
         const planeGeom = new THREE.PlaneGeometry(Math.random()*6 + 3, Math.random()*6+3);
         const plane = new THREE.Mesh(planeGeom, fractureMaterial);
-        plane.position.set(
-            (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8
-        );
+        plane.position.set( (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8 );
         plane.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
         vaultGroup.add(plane);
     }
-
-    const fresnelMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x00BFFF, transparent: true, opacity: 0, side: THREE.BackSide 
-    });
+    const fresnelMaterial = new THREE.MeshBasicMaterial({ color: 0x00BFFF, transparent: true, opacity: 0, side: THREE.BackSide });
     const fresnelMesh = new THREE.Mesh(vaultShellGeometry.clone().scale(1.06, 1.06, 1.06), fresnelMaterial); 
     vaultGroup.add(fresnelMesh);
 
@@ -311,11 +359,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         return new THREE.MeshBasicMaterial({ map: texture, color: color, transparent: true, opacity: opacity, blending: THREE.AdditiveBlending, depthWrite: false });
     };
-    const nebula1 = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), nebulaMaterialGen(new THREE.Color(0x3A005E), noiseTextureUrl, 0.18)); // Darker purple
+    const nebula1 = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), nebulaMaterialGen(new THREE.Color(0x3A005E), noiseTextureUrl, 0.18)); 
     nebula1.position.set(-100, 50, -300); scene.add(nebula1);
-    const nebula2 = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), nebulaMaterialGen(new THREE.Color(0x6A008A), noiseTextureUrl, 0.13)); // Medium purple
+    const nebula2 = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), nebulaMaterialGen(new THREE.Color(0x6A008A), noiseTextureUrl, 0.13)); 
     nebula2.position.set(150, -30, -250); scene.add(nebula2);
-    const nebula3 = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), nebulaMaterialGen(new THREE.Color(0x007B66), noiseTextureUrl, 0.08)); // Darker teal/green
+    const nebula3 = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), nebulaMaterialGen(new THREE.Color(0x007B66), noiseTextureUrl, 0.08)); 
     nebula3.position.set(0, 0, -350); scene.add(nebula3);
 
     const composer = new EffectComposer(renderer);
@@ -334,7 +382,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const handleMouseMove = (event: MouseEvent) => {
       mousePosition.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mousePosition.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      targetCameraRotation.current.y = mousePosition.current.x * 0.18; // Slightly less camera move
+      targetCameraRotation.current.y = mousePosition.current.x * 0.18; 
       targetCameraRotation.current.x = mousePosition.current.y * 0.09;
       const raycaster = new THREE.Raycaster(); const mouseVec = new THREE.Vector2(mousePosition.current.x, mousePosition.current.y);
       raycaster.setFromCamera(mouseVec, camera); 
@@ -370,18 +418,16 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
       });
 
       if (isVaultHovered.current) {
-        (energyCore.material as THREE.MeshBasicMaterial).userData.pulseSpeed = Math.PI * 0.8; // Slightly faster pulse for hover (2.5s cycle)
+        (energyCore.material as THREE.MeshBasicMaterial).userData.pulseSpeed = Math.PI * 0.8; 
         const currentOpacity = (energyCore.material as THREE.MeshBasicMaterial).opacity;
         (energyCore.material as THREE.MeshBasicMaterial).opacity = Math.min(1, currentOpacity * 1.2);
-
-
         internalPathways.forEach(pathway => { 
             (pathway.material as THREE.MeshBasicMaterial).opacity = Math.min(0.6, ((pathway.material as THREE.MeshBasicMaterial).userData.baseOpacity + 0.25 + Math.random()*0.15));
         });
         (fresnelMaterial as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.lerp((fresnelMaterial as THREE.MeshBasicMaterial).opacity, 0.45, 0.1); 
         vaultRotationSpeed.current = THREE.MathUtils.lerp(vaultRotationSpeed.current, 0.00015, 0.1); 
       } else {
-        (energyCore.material as THREE.MeshBasicMaterial).userData.pulseSpeed = Math.PI / 2; // Normal pulse speed (4s cycle)
+        (energyCore.material as THREE.MeshBasicMaterial).userData.pulseSpeed = Math.PI / 2; 
         (fresnelMaterial as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.lerp((fresnelMaterial as THREE.MeshBasicMaterial).opacity, 0, 0.1);
         vaultRotationSpeed.current = THREE.MathUtils.lerp(vaultRotationSpeed.current, 0.001, 0.1);
       }
@@ -421,17 +467,17 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     return () => {
       cancelAnimationFrame(requestId); window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('resize', handleResize);
       renderer.dispose(); 
-      coreGeometry.dispose(); coreMaterial.dispose();
-      vaultShellGeometry.dispose(); vaultShellMaterial.dispose();
+      coreGeometry.dispose(); (coreMaterial as THREE.Material).dispose();
+      vaultShellGeometry.dispose(); (vaultShellMaterial as THREE.Material).dispose();
       internalPathways.forEach(p => { p.geometry.dispose(); (p.material as THREE.Material).dispose(); });
-      pathwayMaterial.dispose();
-      fractureMaterial.dispose(); 
-      fresnelMaterial.dispose();
+      (pathwayMaterial as THREE.Material).dispose();
+      (fractureMaterial as THREE.Material).dispose(); 
+      (fresnelMaterial as THREE.Material).dispose();
       nearParticles.geometry.dispose(); (nearParticles.material as THREE.PointsMaterial).dispose();
       farParticles.geometry.dispose(); (farParticles.material as THREE.PointsMaterial).dispose();
-      nebula1.geometry.dispose(); (nebula1.material as THREE.MeshBasicMaterial).map?.dispose(); (nebula1.material as THREE.MeshBasicMaterial).dispose();
-      nebula2.geometry.dispose(); (nebula2.material as THREE.MeshBasicMaterial).map?.dispose(); (nebula2.material as THREE.MeshBasicMaterial).dispose();
-      nebula3.geometry.dispose(); (nebula3.material as THREE.MeshBasicMaterial).map?.dispose(); (nebula3.material as THREE.MeshBasicMaterial).dispose();
+      nebula1.geometry.dispose(); (nebula1.material as THREE.MeshBasicMaterial).map?.dispose(); ((nebula1.material as THREE.MeshBasicMaterial) as THREE.Material).dispose();
+      nebula2.geometry.dispose(); (nebula2.material as THREE.MeshBasicMaterial).map?.dispose(); ((nebula2.material as THREE.MeshBasicMaterial) as THREE.Material).dispose();
+      nebula3.geometry.dispose(); (nebula3.material as THREE.MeshBasicMaterial).map?.dispose(); ((nebula3.material as THREE.MeshBasicMaterial) as THREE.Material).dispose();
       if (currentMount && renderer.domElement) { currentMount.removeChild(renderer.domElement); }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -459,31 +505,29 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         ))}
       </div>
       
-      {/* Main content block: Title, Subtitle, Buttons. Positioned absolutely. */}
       <div 
         className="relative z-10 text-center flex flex-col items-center"
         style={{
           position: 'absolute',
-          top: '25%', // Top of this block at 25% from viewport top
+          top: '25%', 
           left: '50%',
           transform: 'translateX(-50%)',
-          width: 'min(80vw, 1200px)', // Max 80% viewport width or 1200px
+          width: 'min(80vw, 1200px)', 
         }}
       >
         <div ref={titleFlashRef} className="absolute title-impact-flash-container opacity-0" 
              style={{ 
-               // Ensure flash covers the title area appropriately
                top: '50%', left: '50%', transform: 'translate(-50%, -50%)', 
-               width: '150%', height: '200%' // Larger flash area
+               width: '150%', height: '200%' 
              }}
         />
-        <div className="relative title-impact-flash-container"> {/* Container for h1 and embers */}
+        <div className="relative title-impact-flash-container">
           <h1
             ref={titleRef}
             className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 font-exo2-bold
                         ${titleAnimationPhase === 'stable' ? 'title-stable-styling' : ''}
                       `}
-            aria-label={titleText} // Accessibility: label for the heading
+            aria-label={titleText}
           >
             {titleText.split("").map((char, index) => (
               <span
@@ -534,18 +578,61 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           {typedSubtitle}
           <span className="animate-ping text-purple-300">_</span>
         </p>
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6">
-          <button
-            onClick={onInitiateCalibration}
-            className="group relative w-60 h-16 bg-cyan-500 text-gray-900 font-bold text-lg rounded-full flex items-center justify-center
-                       hover:bg-cyan-400 transition-all duration-300 animate-pulse-orb"
-          >
-            <span className="relative z-10">INITIATE CALIBRATION</span>
-            <span className="absolute top-1/2 left-1/2 w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-100 
-                           transform -translate-x-1/2 -translate-y-1/2 
-                           group-hover:animate-spark">
-            </span>
-          </button>
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
+          {/* New Orb Button */}
+           <div className="relative w-48 h-48 group"> {/* Container for orb and its effects like lightning */}
+            <button
+              ref={orbRef}
+              onClick={handleOrbClick}
+              onMouseDown={handleOrbMouseDown}
+              onMouseUp={handleOrbMouseUp}
+              onMouseEnter={() => setIsOrbHovered(true)}
+              onMouseLeave={() => setIsOrbHovered(false)}
+              aria-label="Initiate Calibration"
+              className={`relative w-full h-full rounded-full bg-[#005f7f]
+                         flex flex-col items-center justify-center text-center text-white
+                         font-exo2-bold text-lg leading-tight tracking-wide
+                         transition-all duration-300 ease-in-out cursor-pointer
+                         focus:outline-none focus-visible:ring-4 focus-visible:ring-[#00BFFF]/50
+                         ${isOrbHovered ? 'animate-orb-vibration orb-glow-hover animate-orb-glow-flicker' : 'orb-glow-default animate-orb-glow-pulse'}`}
+              style={{
+                WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+              }}
+            >
+              <span className="relative z-10 select-none pointer-events-none max-w-[80%]">
+                INITIATE<br/>CALIBRATION
+              </span>
+              
+              {/* Lightning Arcs SVG - positioned absolutely within the button */}
+              {isOrbHovered && (
+                <svg 
+                    className="absolute inset-0 w-full h-full overflow-hidden rounded-full pointer-events-none z-0" 
+                    viewBox={`0 0 ${orbRef.current?.offsetWidth || 192} ${orbRef.current?.offsetHeight || 192}`}
+                    preserveAspectRatio="none"
+                >
+                  {lightningArcs.map(arc => (
+                    <path 
+                        key={arc.id} 
+                        d={arc.d} 
+                        stroke="#00FFFF" 
+                        strokeWidth="1" 
+                        fill="none" 
+                        className="animate-lightning-arc-fade" // Animation applied here
+                        style={{ strokeLinecap: 'round', strokeDasharray: '500', strokeDashoffset: '500' }} // For drawing effect
+                    />
+                  ))}
+                </svg>
+              )}
+
+              {/* Central Click Flash */}
+              <div 
+                ref={orbClickFlashRef}
+                className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full pointer-events-none opacity-0 z-20"
+                // Animation 'animate-orb-click-flash' will be applied on mousedown
+              ></div>
+            </button>
+          </div>
+
           <button
             onClick={onMapDataStream}
             className="relative w-60 h-16 border-2 border-purple-500 text-purple-300 font-bold text-lg rounded-full 
@@ -571,7 +658,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
       <div 
         onClick={onMapDataStream}
         className="absolute left-1/2 transform -translate-x-1/2 cursor-pointer group z-10"
-        style={{ bottom: '5%' }} // Positioned 5% from bottom
+        style={{ bottom: '5%' }} 
         title="Scroll Down"
         aria-label="Scroll to data stream map"
       >
