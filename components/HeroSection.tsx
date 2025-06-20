@@ -9,7 +9,7 @@ import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 
-import { ChevronDownIcon } from './icons';
+// Removed ChevronDownIcon import as it's being replaced
 
 interface HeroSectionProps {
   onInitiateCalibration: () => void;
@@ -87,9 +87,15 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   const [lightningArcs, setLightningArcs] = useState<LightningArc[]>([]);
   const lightningIntervalRef = useRef<number | null>(null);
   const orbRef = useRef<HTMLButtonElement>(null);
-  const orbClickFlashRef = useRef<HTMLDivElement>(null); // This will be the new flash element inside the orb
+  const orbClickFlashRef = useRef<HTMLDivElement>(null); 
   const [orbClicked, setOrbClicked] = useState(false);
-  const orbCoreRef = useRef<HTMLDivElement>(null); // Ref for the Orb's Core layer for lightning origin
+  const orbCoreRef = useRef<HTMLDivElement>(null); 
+
+  // Gravity Well State
+  const [showGravityWell, setShowGravityWell] = useState(true);
+  const gravityWellCanvasRef = useRef<HTMLCanvasElement>(null);
+  const gravityWellAnimationRequestRef = useRef<number | null>(null);
+  const gravityWell3DTargetRef = useRef(new THREE.Vector3(0, -60, 20)); // Target for 3D particles
 
 
   useEffect(() => {
@@ -166,32 +172,26 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
 
   // Orb effects
   const generateLightningArcPath = useCallback((coreRadius: number, orbContainerRadius: number): string => {
-    const svgCenter = orbContainerRadius; // Viewbox is 2*orbContainerRadius x 2*orbContainerRadius, center is at orbContainerRadius, orbContainerRadius
+    const svgCenter = orbContainerRadius; 
 
-    // Start on the edge of the core
     const angleStart = Math.random() * Math.PI * 2;
     const startX = svgCenter + Math.cos(angleStart) * coreRadius;
     const startY = svgCenter + Math.sin(angleStart) * coreRadius;
 
-    // End near the inner edge of the lens (approx. orbContainerRadius * 0.9 to orbContainerRadius)
-    // The arc should be short and contained within the orb, arcing outwards from core
-    const arcLengthFactor = Math.random() * 0.3 + 0.2; // Arc length relative to (orbRadius - coreRadius)
+    const arcLengthFactor = Math.random() * 0.3 + 0.2; 
     const endRadius = coreRadius + (orbContainerRadius - coreRadius) * arcLengthFactor;
     
-    // Ensure arc is directed outwards from start point
-    const endX = svgCenter + Math.cos(angleStart) * endRadius + (Math.random() - 0.5) * (endRadius * 0.3); // Add some randomness to angle
+    const endX = svgCenter + Math.cos(angleStart) * endRadius + (Math.random() - 0.5) * (endRadius * 0.3); 
     const endY = svgCenter + Math.sin(angleStart) * endRadius + (Math.random() - 0.5) * (endRadius * 0.3);
 
-
     const midPoints = [];
-    const numSegments = Math.floor(Math.random() * 2) + 2; // 2-3 segments for a short, sharp arc
+    const numSegments = Math.floor(Math.random() * 2) + 2; 
     for (let i = 1; i < numSegments; i++) {
         const t = i / numSegments;
         const baseX = startX + (endX - startX) * t;
         const baseY = startY + (endY - startY) * t;
-        // Jitter perpendicular to the main arc direction for jaggedness
         const perpendicularAngle = angleStart + Math.PI / 2;
-        const jitterMagnitude = (orbContainerRadius * 0.05) * (Math.random() - 0.5) * 2; // Max 5% of orb radius jitter
+        const jitterMagnitude = (orbContainerRadius * 0.05) * (Math.random() - 0.5) * 2; 
         const offsetX = Math.cos(perpendicularAngle) * jitterMagnitude;
         const offsetY = Math.sin(perpendicularAngle) * jitterMagnitude;
         midPoints.push(`${baseX + offsetX},${baseY + offsetY}`);
@@ -207,23 +207,21 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         if (!orbRef.current || !orbCoreRef.current) return;
         
         const orbContainerRect = orbRef.current.getBoundingClientRect();
-        const orbContainerRadius = orbContainerRect.width / 2; // True radius of the orb container
+        const orbContainerRadius = orbContainerRect.width / 2; 
 
-        // The lightning SVG viewBox is set to be 2*orbContainerRadius.
-        // The core's visual radius is ~55% of the orb container, so use that for lightning origin.
         const visualCoreRadius = orbContainerRadius * 0.55; 
         
         const newArcs: LightningArc[] = [];
-        const arcCount = Math.floor(Math.random() * 2) + 1; // 1-2 sharp arcs
+        const arcCount = Math.floor(Math.random() * 2) + 1; 
         for (let i = 0; i < arcCount; i++) {
           newArcs.push({
             id: `arc-${Date.now()}-${i}`,
             d: generateLightningArcPath(visualCoreRadius, orbContainerRadius),
-            style: { animationDelay: `${Math.random() * 0.1}s` } // Slight delay variation
+            style: { animationDelay: `${Math.random() * 0.1}s` } 
           });
         }
         setLightningArcs(newArcs);
-      }, 250); // Faster arc generation
+      }, 250); 
     } else {
       if (lightningIntervalRef.current) {
         clearInterval(lightningIntervalRef.current);
@@ -254,7 +252,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   };
    const handleOrbClick = () => {
     setOrbClicked(true); 
-    // Simulate the Orb expanding to fill screen for transition
     if (orbRef.current) {
         const rect = orbRef.current.getBoundingClientRect();
         const transitionOrb = document.createElement('div');
@@ -263,25 +260,166 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         transitionOrb.style.top = `${rect.top}px`;
         transitionOrb.style.width = `${rect.width}px`;
         transitionOrb.style.height = `${rect.height}px`;
-        transitionOrb.style.backgroundColor = '#F0FFFF'; // Bright white core color
+        transitionOrb.style.backgroundColor = '#F0FFFF'; 
         transitionOrb.style.borderRadius = '50%';
         transitionOrb.style.zIndex = '10000';
-        transitionOrb.style.transition = 'all 0.5s cubic-bezier(0.25, 1, 0.5, 1)'; // Fast out, slow in
+        transitionOrb.style.transition = 'all 0.5s cubic-bezier(0.25, 1, 0.5, 1)'; 
         document.body.appendChild(transitionOrb);
 
         requestAnimationFrame(() => {
-            transitionOrb.style.transform = 'scale(50)'; // Scale to fill screen
+            transitionOrb.style.transform = 'scale(50)'; 
             transitionOrb.style.opacity = '0.7';
         });
         
         setTimeout(() => {
-            onInitiateCalibration(); // Actual navigation / state change
-            document.body.removeChild(transitionOrb); // Clean up
-        }, 500); // Match transition duration
+            onInitiateCalibration(); 
+            document.body.removeChild(transitionOrb); 
+        }, 500); 
     } else {
-        onInitiateCalibration(); // Fallback if ref is not available
+        onInitiateCalibration(); 
     }
   };
+
+  // Gravity Well scroll listener
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 0) {
+        setShowGravityWell(false);
+      } else {
+        // setShowGravityWell(true); // Can be enabled if it should reappear on scroll to top
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Gravity Well Canvas Animation
+  useEffect(() => {
+    if (!gravityWellCanvasRef.current || !showGravityWell) return;
+
+    const canvas = gravityWellCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = 50;
+    canvas.height = 50;
+
+    const particles: any[] = [];
+    const singularityRadius = 3; // px, center of the 6px div
+    const accretionDiskRadius = 25; // px
+    const numParticles = 70;
+
+    function Particle(this: any) {
+      const angle = Math.random() * Math.PI * 2;
+      this.currentRadius = accretionDiskRadius * (0.8 + Math.random() * 0.2); // Start not exactly at edge
+      this.angle = angle;
+      this.x = canvas.width / 2 + Math.cos(this.angle) * this.currentRadius;
+      this.y = canvas.height / 2 + Math.sin(this.angle) * this.currentRadius;
+      
+      this.initialSpeed = 0.02 + Math.random() * 0.015;
+      this.color = Math.random() < 0.7 ? '#00BFFF' : '#FFFFFF'; // Cyan or White
+      this.size = Math.random() * 1.2 + 0.5;
+      this.stretch = 1;
+      this.alpha = 0.5 + Math.random() * 0.5;
+    }
+
+    Particle.prototype.draw = function() {
+      ctx.beginPath();
+      ctx.globalAlpha = this.alpha;
+      
+      if (this.stretch > 1) {
+        const dx = canvas.width / 2 - this.x;
+        const dy = canvas.height / 2 - this.y;
+        const norm = Math.sqrt(dx * dx + dy * dy) || 1;
+        
+        const aspect = 0.3; // How thin the stretched particle is
+        const pSize = this.size * 0.8; // Make stretched particles appear slightly thinner overall
+
+        // Perpendicular vector for width
+        const perpX = -dy / norm * pSize * aspect / 2;
+        const perpY = dx / norm * pSize * aspect / 2;
+        
+        // Vector along stretch direction
+        const stretchFactor = this.size * this.stretch / 2;
+        const dirX = dx / norm * stretchFactor;
+        const dirY = dy / norm * stretchFactor;
+
+        ctx.moveTo(this.x - dirX - perpX, this.y - dirY - perpY);
+        ctx.lineTo(this.x + dirX - perpX, this.y + dirY - perpY);
+        ctx.lineTo(this.x + dirX + perpX, this.y + dirY + perpY);
+        ctx.lineTo(this.x - dirX + perpX, this.y - dirY + perpY);
+        ctx.closePath();
+        ctx.fillStyle = this.color;
+        ctx.fill();
+
+      } else {
+        ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    Particle.prototype.update = function() {
+      const distToCenter = this.currentRadius;
+      
+      // Spiraling inwards: speed increases closer to center
+      const inwardPull = 0.05 + (accretionDiskRadius - distToCenter) * 0.005;
+      this.currentRadius -= inwardPull;
+
+      if (this.currentRadius <= singularityRadius) {
+        // Reset particle
+        const angle = Math.random() * Math.PI * 2;
+        this.currentRadius = accretionDiskRadius * (0.8 + Math.random() * 0.2);
+        this.angle = angle;
+        this.alpha = 0.5 + Math.random() * 0.5;
+        this.stretch = 1;
+      }
+
+      // Angular speed increases as it approaches center
+      const speedFactor = Math.max(0.1, accretionDiskRadius / (distToCenter + 1)); // Ensure speedFactor is positive
+      this.angle += this.initialSpeed * speedFactor;
+
+      this.x = canvas.width / 2 + Math.cos(this.angle) * this.currentRadius;
+      this.y = canvas.height / 2 + Math.sin(this.angle) * this.currentRadius;
+      
+      this.stretch = 1;
+      if (this.currentRadius < singularityRadius * 4 && this.currentRadius > singularityRadius) { // Start stretching earlier
+          this.stretch = 1 + ((singularityRadius * 4 - this.currentRadius) / (singularityRadius * 3)) * 3; // Stretch up to 4x length
+          this.alpha = Math.max(0.1, this.alpha * (this.currentRadius / (singularityRadius * 4))); // Fade as it stretches and nears
+      } else if (this.currentRadius <= singularityRadius) {
+           this.alpha = 0; // Vanish
+      }
+    };
+    
+    for (let i = 0; i < numParticles; i++) {
+      particles.push(new (Particle as any)());
+    }
+
+    const animateGravityWell = () => {
+      if (!showGravityWell || !gravityWellCanvasRef.current) {
+        if (gravityWellAnimationRequestRef.current) {
+          cancelAnimationFrame(gravityWellAnimationRequestRef.current);
+        }
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      gravityWellAnimationRequestRef.current = requestAnimationFrame(animateGravityWell);
+    };
+
+    animateGravityWell();
+
+    return () => {
+      if (gravityWellAnimationRequestRef.current) {
+        cancelAnimationFrame(gravityWellAnimationRequestRef.current);
+      }
+    };
+  }, [showGravityWell]);
+
 
 
   useEffect(() => {
@@ -378,6 +516,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const createParticles = (count: number, size: number, color1: THREE.Color, color2: THREE.Color, color3: THREE.Color, spreadFactor: number, isLayer2: boolean) => {
       const particleGeometry = new THREE.BufferGeometry();
       const positions = []; const colors = []; const sizes = []; const baseVelocities = [];
+      const pulledByGravityWell = []; // new attribute: 0 or 1
+
       for (let i = 0; i < count; i++) {
         positions.push((Math.random() - 0.5) * spreadFactor * (isLayer2 ? 2 : 1));
         positions.push((Math.random() - 0.5) * spreadFactor * (isLayer2 ? 2 : 1));
@@ -387,11 +527,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         colors.push(chosenColor.r, chosenColor.g, chosenColor.b);
         sizes.push(Math.random() * (isLayer2 ? 0.8 : 1.5) + 0.5);
         baseVelocities.push((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.01);
+        pulledByGravityWell.push(0); // Initially not pulled
       }
       particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
       particleGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
       particleGeometry.setAttribute('baseVelocity', new THREE.Float32BufferAttribute(baseVelocities, 3));
+      particleGeometry.setAttribute('pulledByGravityWell', new THREE.Float32BufferAttribute(pulledByGravityWell, 1));
+      
       const particleMaterial = new THREE.PointsMaterial({ size: size, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true });
       return new THREE.Points(particleGeometry, particleMaterial);
     };
@@ -399,6 +542,21 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     scene.add(nearParticles);
     const farParticles = createParticles(2500, 0.18, new THREE.Color(0x00FFFF), new THREE.Color(0xF0F0F0), new THREE.Color(0xFF00FF), 400, true);
     scene.add(farParticles);
+
+    // Initialize which particles can be affected by gravity well
+    [nearParticles, farParticles].forEach(pSystem => {
+        const pulledAttr = pSystem.geometry.attributes.pulledByGravityWell as THREE.BufferAttribute;
+        let pullCount = 0;
+        const maxPullCount = Math.floor(pulledAttr.count * 0.10); // Max 10%
+        for (let i = 0; i < pulledAttr.count; i++) {
+            if (pullCount < maxPullCount && Math.random() < 0.1) { // 10% chance until limit is hit
+                pulledAttr.setX(i, 1);
+                pullCount++;
+            }
+        }
+        pulledAttr.needsUpdate = true;
+    });
+
 
     const noiseTextureUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAQAAADZc7J/AAAAaklEQVR4Ae3MsQ2AMAwEwXEWBRDUWu0M6V8qPjKzRiwrcsYjYXkz7UASgSA1jESgD5DyBVL+Sj4dfSPk2zQspl9D4Ud3xudjBwDXfAEXKUDXSYCf2Q2E5Rp0AcNl7QIU0Qo4TQtYhXwAdQAAAABJRU5ErkJggg==';
     const nebulaMaterialGen = (color: THREE.Color, mapUrl: string, opacity: number) => {
@@ -442,6 +600,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const animate = () => {
       requestId = requestAnimationFrame(animate); 
       const elapsedTime = clock.getElapsedTime();
+      const deltaTime = clock.getDelta();
       
       currentCameraRotation.current.x += (targetCameraRotation.current.x - currentCameraRotation.current.x) * 0.05;
       currentCameraRotation.current.y += (targetCameraRotation.current.y - currentCameraRotation.current.y) * 0.05;
@@ -479,21 +638,52 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         vaultRotationSpeed.current = THREE.MathUtils.lerp(vaultRotationSpeed.current, 0.001, 0.1);
       }
       
+      const particlePullStrength = 0.05 * deltaTime * 60; // Scale strength by delta time
+      const tempVec = new THREE.Vector3(); // For reuse
+
       [nearParticles, farParticles].forEach(pSystem => {
           const positions = pSystem.geometry.attributes.position.array as Float32Array;
           const baseVelocities = pSystem.geometry.attributes.baseVelocity.array as Float32Array;
+          const pulledAttr = pSystem.geometry.attributes.pulledByGravityWell as THREE.BufferAttribute;
           const spread = pSystem === nearParticles ? 200 : 400;
+
           for (let i = 0; i < positions.length / 3; i++) {
-            positions[i*3] += baseVelocities[i*3] + (Math.random() - 0.5) * 0.01;
-            positions[i*3+1] += baseVelocities[i*3+1] + (Math.random() - 0.5) * 0.01;
-            positions[i*3+2] += baseVelocities[i*3+2] + (Math.random() - 0.5) * 0.005;
-            if (positions[i*3] > spread/2) positions[i*3] = -spread/2; if (positions[i*3] < -spread/2) positions[i*3] = spread/2;
-            if (positions[i*3+1] > spread/2) positions[i*3+1] = -spread/2; if (positions[i*3+1] < -spread/2) positions[i*3+1] = spread/2;
+            let currentX = positions[i*3];
+            let currentY = positions[i*3+1];
+            let currentZ = positions[i*3+2];
+
+            if (showGravityWell && pulledAttr.getX(i) === 1) {
+                // Check if particle is roughly in the lower part of the view
+                // This is a rough check; true screen position depends on perspective
+                const worldYThreshold = -20; // Example threshold, adjust based on scene scale
+                if (currentY < worldYThreshold && Math.abs(currentX) < spread / 4 ) { // Only affect particles somewhat centered horizontally
+                    tempVec.set(currentX, currentY, currentZ);
+                    const directionToWell = gravityWell3DTargetRef.current.clone().sub(tempVec).normalize();
+                    
+                    baseVelocities[i*3] = THREE.MathUtils.lerp(baseVelocities[i*3], directionToWell.x * 0.1, particlePullStrength * 0.5);
+                    baseVelocities[i*3+1] = THREE.MathUtils.lerp(baseVelocities[i*3+1], directionToWell.y * 0.1, particlePullStrength); // Stronger Y pull
+                    baseVelocities[i*3+2] = THREE.MathUtils.lerp(baseVelocities[i*3+2], directionToWell.z * 0.1, particlePullStrength * 0.3);
+                }
+            }
+            
+            currentX += baseVelocities[i*3] + (Math.random() - 0.5) * 0.01;
+            currentY += baseVelocities[i*3+1] + (Math.random() - 0.5) * 0.01;
+            currentZ += baseVelocities[i*3+2] + (Math.random() - 0.5) * 0.005;
+
+            if (currentX > spread/2) currentX = -spread/2; if (currentX < -spread/2) currentX = spread/2;
+            if (currentY > spread/2) currentY = -spread/2; if (currentY < -spread/2) currentY = spread/2;
             const zDepth = pSystem === nearParticles ? -20 : -50; const zSpread = pSystem === nearParticles ? 200 : 400;
-            if (positions[i*3+2] > zDepth + zSpread/2) positions[i*3+2] = zDepth - zSpread/2; if (positions[i*3+2] < zDepth - zSpread/2) positions[i*3+2] = zDepth + zSpread/2;
+            if (currentZ > zDepth + zSpread/2) currentZ = zDepth - zSpread/2; if (currentZ < zDepth - zSpread/2) currentZ = zDepth + zSpread/2;
+
+            positions[i*3] = currentX;
+            positions[i*3+1] = currentY;
+            positions[i*3+2] = currentZ;
           }
           pSystem.geometry.attributes.position.needsUpdate = true;
+          pSystem.geometry.attributes.baseVelocity.needsUpdate = true; // If baseVelocities are modified
       });
+
+
       nebula1.rotation.z += 0.0001; (nebula1.material as THREE.MeshBasicMaterial).map!.offset.x += 0.00005;
       nebula2.rotation.z -= 0.00008; (nebula2.material as THREE.MeshBasicMaterial).map!.offset.y += 0.00003;
       (nebula3.material as THREE.MeshBasicMaterial).map!.offset.x -= 0.00002;
@@ -526,9 +716,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
       nebula2.geometry.dispose(); (nebula2.material as THREE.MeshBasicMaterial).map?.dispose(); ((nebula2.material as THREE.MeshBasicMaterial) as THREE.Material).dispose();
       nebula3.geometry.dispose(); (nebula3.material as THREE.MeshBasicMaterial).map?.dispose(); ((nebula3.material as THREE.MeshBasicMaterial) as THREE.Material).dispose();
       if (currentMount && renderer.domElement) { currentMount.removeChild(renderer.domElement); }
+      if (gravityWellAnimationRequestRef.current) cancelAnimationFrame(gravityWellAnimationRequestRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showGravityWell]); // Re-run Three.js effect logic if showGravityWell changes (relevant for particle pull)
 
   const dataStreamStarStyles: React.CSSProperties[] = React.useMemo(() => [
     { top: '15%', left: '10%' }, { top: '30%', left: '25%' }, { top: '50%', left: '5%' },
@@ -550,6 +741,23 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     { top: '22%', left: '112%', width: '15%', transform: 'rotate(45deg)' },
     { top: '60%', left: '108%', width: '20%', transform: 'rotate(-30deg)' },
   ], []);
+
+  const [gravityWellContainerClass, setGravityWellContainerClass] = useState("gravity-well-container");
+
+  useEffect(() => {
+    if (!showGravityWell) {
+      setGravityWellContainerClass("gravity-well-container fade-out");
+      // Optional: Set display none after animation if CSS doesn't handle it
+      const timer = setTimeout(() => {
+        if (window.scrollY > 0) { // Check again in case user scrolled back up quickly
+             setGravityWellContainerClass("gravity-well-container fade-out hidden");
+        }
+      }, 500); // Match opacity transition duration
+      return () => clearTimeout(timer);
+    } else {
+      setGravityWellContainerClass("gravity-well-container");
+    }
+  }, [showGravityWell]);
 
 
   return (
@@ -647,7 +855,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           <span className="animate-ping text-purple-300">_</span>
         </p>
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
-            {/* Initiate Calibration Orb - New Multi-Layered Design */}
+            {/* Initiate Calibration Orb */}
             <button
                 ref={orbRef}
                 onClick={handleOrbClick}
@@ -666,56 +874,46 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
                     maxWidth: '120px', maxHeight: '120px'
                 }}
             >
-                {/* Layer 2: Atmosphere */}
                 <div className="orb-layer-2-atmosphere"></div>
-                
-                {/* Layer 3: Core */}
                 <div 
                     ref={orbCoreRef}
                     className={`orb-layer-3-core ${isOrbHovered ? 'orb-layer-3-core-hover' : ''}`}
                 ></div>
-
-                {/* Lightning Arcs SVG - positioned relative to core size */}
                 {isOrbHovered && orbRef.current && (
                     <svg 
                         className="orb-lightning-svg"
-                        viewBox={`0 0 ${orbRef.current.offsetWidth} ${orbRef.current.offsetHeight}`} // SVG viewbox matches orb container
+                        viewBox={`0 0 ${orbRef.current.offsetWidth} ${orbRef.current.offsetHeight}`} 
                         preserveAspectRatio="xMidYMid meet"
                     >
                     {lightningArcs.map(arc => (
                         <path 
                             key={arc.id} 
                             d={arc.d} 
-                            stroke="#FFFFFF" // White-hot
-                            strokeWidth="0.7" // Thin and sharp
+                            stroke="#FFFFFF" 
+                            strokeWidth="0.7" 
                             fill="none" 
                             className="animate-lightning-arc-fade" 
                             style={{ 
                                 strokeLinecap: 'round', 
-                                strokeDasharray: '200', strokeDashoffset: '200', // For sharp appearance
-                                filter: 'drop-shadow(0 0 1px #FFFFFF) drop-shadow(0 0 2px #FFFFF0)', // Subtle glow for arcs
+                                strokeDasharray: '200', strokeDashoffset: '200', 
+                                filter: 'drop-shadow(0 0 1px #FFFFFF) drop-shadow(0 0 2px #FFFFF0)', 
                                 ...(arc.style || {})
                             }} 
                         />
                     ))}
                     </svg>
                 )}
-                
-                {/* Layer 4: Surface Lens */}
                 <div className="orb-layer-4-lens"></div>
-
-                {/* Layer 5: Text */}
                 <span className="orb-layer-5-text">
                     INITIATE<br/>CALIBRATION
                 </span>
-
-                {/* Click Flash Element */}
                 <div 
                     ref={orbClickFlashRef}
                     className="orb-click-flash-element"
                 ></div>
             </button>
 
+          {/* Map Data Stream Button */}
           <button
             onClick={onMapDataStream}
             className="relative w-64 h-16 bg-cyan-500/10 border border-cyan-500 text-white 
@@ -726,18 +924,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
                        focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-500/50"
              style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            {/* Shimmer Effect */}
             <span className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
               <span className="absolute top-0 left-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-effect -translate-x-full"></span>
             </span>
-
-            {/* Star Chart Container (for hover) */}
             <div className="absolute inset-0 w-full h-full overflow-hidden rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-              <div className="absolute top-0 left-0 w-[200%] h-full animate-starchart-pan-effect"> {/* This div pans */}
-                {/* Nebula */}
+              <div className="absolute top-0 left-0 w-[200%] h-full animate-starchart-pan-effect"> 
                 <div className="absolute inset-0 bg-gradient-radial from-cyan-900/20 via-cyan-800/5 to-transparent opacity-40"></div>
-                
-                {/* Stars & Lines */}
                 {dataStreamStarStyles.map((style, i) => <StarChartStar key={`star-${i}`} style={style} />)}
                 {dataStreamLineStyles.map((style, i) => <StarChartLine key={`line-${i}`} style={style} />)}
               </div>
@@ -746,26 +938,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           </button>
         </div>
       </div>
-
-      <div 
+      
+      {/* Gravity Well Element */}
+      <div
+        className={gravityWellContainerClass}
         onClick={onMapDataStream}
-        className="absolute left-1/2 transform -translate-x-1/2 cursor-pointer group z-10"
-        style={{ bottom: '5%' }} 
         title="Scroll Down"
         aria-label="Scroll to data stream map"
       >
-        <div className="w-16 h-16 border-2 border-indigo-400 rounded-full flex items-center justify-center animate-pulse">
-            <ChevronDownIcon className="w-8 h-8 text-indigo-300 group-hover:text-cyan-300 transition-colors" />
-        </div>
-        {[...Array(3)].map((_,i) => ( 
-          <div key={i} className="absolute w-1 h-1 bg-indigo-300 rounded-full animate-ping"
-             style={{ 
-               top: `${Math.random()*20 - 10}px`, left: `${Math.random()*20 - 10}px`,
-               animationDelay: `${i*0.2}s`, animationDuration: '2s'
-             }}>
-          </div>
-        ))}
+        <canvas ref={gravityWellCanvasRef} className="gravity-well-canvas"></canvas>
+        <div className="gravity-well-singularity"></div>
       </div>
+
     </section>
   );
 };
