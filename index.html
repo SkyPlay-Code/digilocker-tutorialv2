@@ -15,7 +15,7 @@
     }
 
     /* Glow effects */
-    .text-glow-cyan { /* Existing glow, might be used elsewhere */
+    .text-glow-cyan {
       color: #a5f3fc; 
       text-shadow: 0 0 3px rgba(6,182,212,0.7), 0 0 5px rgba(6,182,212,0.5), 0 0 10px rgba(6,182,212,0.3);
     }
@@ -85,39 +85,60 @@
       font-family: 'Exo 2', sans-serif;
       font-weight: 700;
     }
-
-    .title-char-construct {
-      display: inline-block; /* Required for transform */
+    
+    .title-char-construct { /* Old animation, might be removed or repurposed */
+      display: inline-block; 
       opacity: 0;
       animation-fill-mode: forwards;
     }
     
     .title-impact-flash-container {
-      position: relative; /* For pseudo-element flash */
+      position: relative; 
     }
-    .title-impact-flash-container::after {
+    .title-impact-flash-container::after { /* General flash pseudo-element */
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: -20%; left: -20%; right: -20%; bottom: -20%; /* Cover larger area */
       background-color: white;
       opacity: 0;
       pointer-events: none;
       animation-fill-mode: forwards;
+      border-radius: 50%; /* Make it more of a radial flash */
     }
     
-    .title-final-appearance {
+    .title-stable-styling { /* Final text styling after animation */
       color: #FFFFFF; /* Solid white text */
-      /* Pulsing blue inner glow applied by pulsing-blue-glow-anim */
-      animation: pulsing-blue-glow-anim 2s infinite ease-in-out;
+      /* Pulsing blue inner glow applied by pulsing-blue-text-glow animation */
+      animation: pulsing-blue-text-glow 2s infinite ease-in-out;
+      opacity: 1; /* Ensure it's visible */
     }
 
     .ember-particle {
       position: absolute;
       border-radius: 50%;
-      background-color: #00BFFF; /* Electric blue */
-      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; /* Blue with cyan corona */
+      background-color: #00BFFF; 
+      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; 
       pointer-events: none;
       animation-fill-mode: forwards;
+    }
+
+    /* New styles for title shards */
+    .title-shard {
+      position: absolute;
+      width: 8px; /* Slightly larger for visibility */
+      height: 3px; 
+      background-color: #00BFFF; 
+      box-shadow: 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00FFFF;
+      border-radius: 1px;
+      opacity: 0;
+      pointer-events: none;
+      will-change: transform, opacity; /* Performance hint */
+    }
+
+    /* Ensure title text itself is initially hidden if shards are forming it */
+    .title-text-element {
+      opacity: 0; /* Hidden until it snaps in */
+      display: inline-block; /* For transform */
     }
 
   </style>
@@ -137,11 +158,19 @@
             'fadeIn': 'fadeIn 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
             'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out',
-            // New animations for title
-            'construct-char': 'construct-char-anim 0.4s ease-out forwards', // Duration adjusted
-            'impact-flash': 'impact-flash-anim 0.2s ease-out forwards',
-            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out',
-            'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards', // Average duration
+            // Old title animations (construct-char, impact-flash) will be replaced or modified
+            // 'construct-char': 'construct-char-anim 0.4s ease-out forwards', 
+            // 'impact-flash': 'impact-flash-anim 0.2s ease-out forwards', // Old general flash
+            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out', // Old general glow
+            'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards',
+
+            // New animations for title sequence
+            'shard-ingress': 'shard-ingress-anim 1s ease-out forwards',
+            'shard-swarm': 'shard-swarm-anim 1s linear infinite alternate',
+            'shard-coalesce': 'shard-coalesce-anim 0.3s ease-in forwards',
+            'text-snap-in': 'text-snap-in-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards', // Fast with overshoot
+            'title-impact-flash-main': 'title-impact-flash-main-anim 0.3s ease-out forwards', // Main title impact
+            'pulsing-blue-text-glow': 'pulsing-blue-text-glow-anim 2s infinite ease-in-out', // For final text
           },
           keyframes: {
             spark: {
@@ -173,18 +202,18 @@
               '0%, 100%': { opacity: 0.7, transform: 'scale(1)' },
               '50%': { opacity: 1, transform: 'scale(1.1)' },
             },
-            // New keyframes for title
-            'construct-char-anim': {
+            // Old title keyframes - review if needed, likely replaced by new ones
+            'construct-char-anim': { /* Kept if used elsewhere, but not for main title anim */
               '0%': { opacity: '0', transform: 'scale(0.1) rotate(30deg)', color: '#00BFFF' },
               '70%': { opacity: '1', transform: 'scale(1.15) rotate(-5deg)', color: '#00BFFF' },
               '100%': { opacity: '1', transform: 'scale(1) rotate(0deg)', color: '#FFFFFF' },
             },
-            'impact-flash-anim': {
+            'impact-flash-anim': { /* Old general flash, new one is title-impact-flash-main */
               '0%': { opacity: '0.7', boxShadow: '0 0 10px 5px white, 0 0 20px 10px white, 0 0 40px 20px rgba(255,255,255,0.7)' },
               '50%': { opacity: '1', boxShadow: '0 0 20px 10px white, 0 0 40px 20px white, 0 0 80px 40px rgba(255,255,255,0.7)' },
               '100%': { opacity: '0', boxShadow: 'none' },
             },
-            'pulsing-blue-glow-anim': {
+            'pulsing-blue-glow-anim': { /* Old general glow for elements */
               '0%, 100%': { 
                 textShadow: '0 0 2px #fff, 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 16px #00BFFF' 
               },
@@ -193,9 +222,45 @@
               },
             },
             'ember-fly-fade-anim': {
-              '0%': { opacity: '1', transform: 'translate(0, 0) scale(1)' },
+              '0%': { opacity: 'var(--ember-initial-opacity, 1)', transform: 'translate(0, 0) scale(1)' },
               '100%': { opacity: '0', transform: 'translate(var(--ember-tx, 0px), var(--ember-ty, 0px)) scale(0.3)' },
             },
+
+            // New keyframes for title shards & text
+            'shard-ingress-anim': {
+              '0%': { opacity: '0', transform: 'translate(var(--shard-ix), var(--shard-iy)) scale(0.2) rotate(var(--shard-ir))' },
+              '60%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1.2) rotate(0deg)' },
+              '100%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1) rotate(0deg)' }
+            },
+            'shard-swarm-anim': { // Applied after ingress, runs for the swarm duration
+              '0%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
+              '25%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx1)), calc(var(--shard-cy) + var(--swarm-dy1))) rotate(var(--swarm-r1)) scale(0.9)' },
+              '50%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx2)), calc(var(--shard-cy) + var(--swarm-dy2))) rotate(var(--swarm-r2)) scale(1.1)' },
+              '75%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx3)), calc(var(--shard-cy) + var(--swarm-dy3))) rotate(var(--swarm-r3)) scale(0.95)' },
+              '100%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
+            },
+            'shard-coalesce-anim': { // Shards disappear
+              '0%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1)' },
+              '100%': { opacity: '0', transform: 'translate(var(--shard-finalx), var(--shard-finaly)) scale(0.1)' } // Fly towards text then vanish
+            },
+            'text-snap-in-anim': {
+              '0%': { opacity: '0', transform: 'scale(1.8) rotateX(-30deg)', color: '#00BFFF' }, // Start larger, slightly tilted, blueish
+              '70%': { opacity: '1', transform: 'scale(0.9) rotateX(10deg)', color: '#CCFFFF' }, // Overshoot small
+              '100%': { opacity: '1', transform: 'scale(1) rotateX(0deg)', color: '#FFFFFF' } // Settle to white
+            },
+            'title-impact-flash-main-anim': { // Flash for main title assembly
+              '0%': { opacity: '0.8', transform: 'scale(1.5)', backgroundColor: 'white' },
+              '50%': { opacity: '1', transform: 'scale(2.5)', backgroundColor: 'white' }, // Brighter, larger
+              '100%': { opacity: '0', transform: 'scale(0.5)', backgroundColor: 'white' }
+            },
+            'pulsing-blue-text-glow-anim': { // For final text
+              '0%, 100%': { 
+                textShadow: '0 0 3px #fff, 0 0 5px #00BFFF, 0 0 10px #00BFFF, 0 0 15px #00BFFF' 
+              },
+              '50%': { 
+                textShadow: '0 0 5px #fff, 0 0 10px #00BFFF, 0 0 20px #00BFFF, 0 0 30px #00BFFF, 0 0 40px #00BFFF' 
+              },
+            }
           },
           colors: {
             cyan: {
