@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Quantum Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      /* Fallback font stack */
+      font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+
+    /* Glow effects */
+    .text-glow-cyan {
+      color: #a5f3fc; /* lighter cyan for base */
+      text-shadow: 0 0 3px rgba(6,182,212,0.7), 0 0 5px rgba(6,182,212,0.5), 0 0 10px rgba(6,182,212,0.3);
+    }
+    .text-glow-blue {
+      color: #93c5fd; /* lighter blue for base */
+      text-shadow: 0 0 3px rgba(37,99,235,0.7), 0 0 5px rgba(37,99,235,0.5), 0 0 10px rgba(37,99,235,0.3);
+    }
+    .text-glow-magenta {
+      color: #f0abfc; /* lighter magenta for base */
+      text-shadow: 0 0 3px rgba(217,70,239,0.7), 0 0 5px rgba(217,70,239,0.5), 0 0 10px rgba(217,70,239,0.3);
+    }
+    .box-glow-cyan {
+      box-shadow: 0 0 8px rgba(6,182,212,0.6), 0 0 15px rgba(6,182,212,0.4), inset 0 0 3px rgba(6,182,212,0.5);
+    }
+    .box-glow-magenta {
+      box-shadow: 0 0 8px rgba(217,70,239,0.6), 0 0 15px rgba(217,70,239,0.4), inset 0 0 3px rgba(217,70,239,0.5);
+    }
+    .box-glow-blue {
+      box-shadow: 0 0 8px rgba(37,99,235,0.6), 0 0 15px rgba(37,99,235,0.4), inset 0 0 3px rgba(37,99,235,0.5);
+    }
+
+    /* Glitch effect for copyright */
+    .glitch-copyright {
+      position: relative;
+      color: #8B5CF6; /* Default color: purple-500 */
+    }
+    .glitch-copyright::before,
+    .glitch-copyright::after {
+      content: "© 2024 Quantum Dynamics Corp. All Rights Reserved."; /* Ensure this matches inner text */
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent; /* Assuming parent has a dark background */
+      overflow: hidden;
+    }
+    .glitch-copyright::before {
+      left: 2px;
+      text-shadow: -1px 0 #d946ef; /* Magenta */
+      clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%); /* Example clip */
+      animation: glitch-anim-1 3s infinite linear alternate-reverse;
+    }
+    .glitch-copyright::after {
+      left: -2px;
+      text-shadow: -1px 0 #06b6d4, 1px 1px #d946ef; /* Cyan and Magenta */
+      clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%); /* Example clip */
+      animation: glitch-anim-2 2.5s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch-anim-1 {
+      0% { clip-path: polygon(0 20%, 100% 20%, 100% 25%, 0 25%); }
+      25% { clip-path: polygon(0 40%, 100% 40%, 100% 48%, 0 48%); }
+      50% { clip-path: polygon(0 65%, 100% 65%, 100% 70%, 0 70%); }
+      75% { clip-path: polygon(0 80%, 100% 80%, 100% 83%, 0 83%); }
+      100% { clip-path: polygon(0 33%, 100% 33%, 100% 38%, 0 38%); }
+    }
+    @keyframes glitch-anim-2 {
+      0% { clip-path: polygon(0 5%, 100% 5%, 100% 10%, 0 10%); }
+      25% { clip-path: polygon(0 50%, 100% 50%, 100% 57%, 0 57%); }
+      50% { clip-path: polygon(0 22%, 100% 22%, 100% 30%, 0 30%); }
+      75% { clip-path: polygon(0 88%, 100% 88%, 100% 92%, 0 92%); }
+      100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+          },
+          animation: {
+            'spark': 'spark 0.5s ease-out forwards', /* Removed infinite, let group-hover retrigger */
+            'pulse-orb': 'pulse-orb-animation 2s infinite',
+            'materialize': 'materialize 0.5s forwards',
+            'typewriter': 'typewriter 1s steps(40,end) forwards',
+            'beam': 'beam 2s ease-out forwards',
+            'fadeIn': 'fadeIn 0.5s ease-out',
+            'slideUp': 'slideUp 0.5s ease-out',
+          },
+          keyframes: {
+            spark: {
+              '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+              '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
+            },
+            'pulse-orb-animation': {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' }, /* cyan-500 */
+              '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
+            },
+            materialize: {
+              to: { opacity: '1' }
+            },
+            typewriter: {
+                from: { width: '0' },
+                to: { width: '100%' }
+            },
+            beam: {
+              '0%': { height: '0', opacity: '0' },
+              '50%': { height: '128px', opacity: '1' }, /* h-32 */
+              '100%': { height: '128px', opacity: '0', transform: 'translate(-50%, -100%) scaleY(1.5)' } /* Rotation is dynamic */
+            },
+            fadeIn: { 
+              '0%': { opacity:'0', transform: 'scale(0.95)' }, 
+              '100%': { opacity:'1', transform: 'scale(1)' } 
+            },
+            slideUp: { 
+              '0%': { opacity:'0', transform: 'translate(-50%, -40%)' }, 
+              '100%': { opacity:'1', transform: 'translate(-50%, -50%)' } 
+            }
+          },
+          colors: {
+            cyan: { /* Tailwind cyan palette */
+              DEFAULT: '#06b6d4', 50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63', 950: '#083344'
+            },
+            magenta: { /* Custom magenta based on fuchsia */
+                DEFAULT: '#d946ef', 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75', 950: '#4a044e'
+            },
+            // Ensuring purple and indigo are fully available if used beyond defaults
+            purple: { DEFAULT: '#a855f7', 50: '#fbf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce', 800: '#6b21a8', 900: '#581c87', 950: '#3b0764'},
+            indigo: { DEFAULT: '#6366f1', 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b'}
+          },
+          dropShadow: {
+            '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4', // For GlobeAltIcon from ShareSection
+          }
+        }
+      },
+      plugins: [
+        function({addUtilities}) {
+          const newUtilities = {
+            '.scrollbar-thin': {
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'var(--scrollbar-thumb) var(--scrollbar-track)'
+            },
+            '.scrollbar-thumb-indigo-500': { '--scrollbar-thumb': '#6366f1' },
+            '.scrollbar-track-indigo-900\\/50': { '--scrollbar-track': 'rgba(49, 46, 129, 0.5)' },
+
+            '.scrollbar-webkit': { /* For Webkit browsers */ }
+          };
+          addUtilities(newUtilities, ['responsive', 'hover']);
+
+           addUtilities({ // Direct Webkit scrollbar styling
+            '.scrollbar-webkit::-webkit-scrollbar': {
+              width: '8px',
+              height: '8px',
+            },
+            '.scrollbar-webkit::-webkit-scrollbar-track': {
+              background: 'rgba(49, 46, 129, 0.5)', /* indigo-900/50 */
+            },
+            '.scrollbar-webkit::-webkit-scrollbar-thumb': {
+              backgroundColor: '#6366f1', /* indigo-500 */
+              borderRadius: '4px',
+              border: '2px solid rgba(49, 46, 129, 0.5)', /* indigo-900/50 */
+            },
+          });
+        }
+      ]
+    }
+  </script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-black font-orbitron scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-indigo-900/50 scrollbar-webkit">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "The Quantum Vault",
+  "description": "An interactive web application showcasing a futuristic quantum vault interface, allowing users to simulate calibration sequences, explore data maps, and learn about its features. Styled with Tailwind CSS for a high-tech aesthetic.",
+  "requestFramePermissions": []
+}
