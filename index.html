@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -15,7 +15,7 @@
     }
 
     /* Glow effects */
-    .text-glow-cyan {
+    .text-glow-cyan { /* Existing glow, might be used elsewhere */
       color: #a5f3fc; 
       text-shadow: 0 0 3px rgba(6,182,212,0.7), 0 0 5px rgba(6,182,212,0.5), 0 0 10px rgba(6,182,212,0.3);
     }
@@ -81,285 +81,44 @@
       100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
     }
     
-    .font-exo2 {
-      font-family: 'Exo 2', sans-serif;
-    }
     .font-exo2-bold {
       font-family: 'Exo 2', sans-serif;
       font-weight: 700;
     }
-    .font-roboto-mono {
-      font-family: 'Roboto Mono', monospace;
+
+    .title-char-construct {
+      display: inline-block; /* Required for transform */
+      opacity: 0;
+      animation-fill-mode: forwards;
     }
-        
+    
     .title-impact-flash-container {
-      position: relative; 
+      position: relative; /* For pseudo-element flash */
     }
-    .title-impact-flash-container::after { /* General flash pseudo-element */
+    .title-impact-flash-container::after {
       content: '';
       position: absolute;
-      top: -20%; left: -20%; right: -20%; bottom: -20%; /* Cover larger area */
+      top: 0; left: 0; right: 0; bottom: 0;
       background-color: white;
       opacity: 0;
       pointer-events: none;
       animation-fill-mode: forwards;
-      border-radius: 50%; /* Make it more of a radial flash */
     }
     
-    .title-stable-styling { /* Final text styling after animation */
+    .title-final-appearance {
       color: #FFFFFF; /* Solid white text */
-      animation: pulsing-blue-text-glow-anim 2s infinite ease-in-out;
-      opacity: 1; /* Ensure it's visible */
+      /* Pulsing blue inner glow applied by pulsing-blue-glow-anim */
+      animation: pulsing-blue-glow-anim 2s infinite ease-in-out;
     }
 
     .ember-particle {
       position: absolute;
       border-radius: 50%;
-      background-color: #00BFFF; 
-      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; 
+      background-color: #00BFFF; /* Electric blue */
+      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; /* Blue with cyan corona */
       pointer-events: none;
       animation-fill-mode: forwards;
     }
-
-    .title-shard {
-      position: absolute;
-      width: 8px; 
-      height: 3px; 
-      background-color: #00BFFF; 
-      box-shadow: 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00FFFF;
-      border-radius: 1px;
-      opacity: 0;
-      pointer-events: none;
-      will-change: transform, opacity; 
-    }
-
-    .title-text-element {
-      opacity: 0; 
-      display: inline-block; 
-    }
-
-    /* Orb specific styles */
-    .orb-container {
-      /* Sizing handled by inline styles in component for vw/max-px logic */
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.2s ease-out, filter 0.3s ease-in-out;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .orb-layer-1-corona { /* Applied to orb-container for default state */
-      filter: drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 20px rgba(0,191,255,0.7));
-    }
-    .orb-layer-1-corona-pulsing { /* Applied to orb-container for default state */
-       animation: orb-deep-thrum-corona 3s infinite ease-in-out;
-    }
-     .orb-layer-1-corona-hover { /* Applied to orb-container for hover state */
-      filter: drop-shadow(0 0 12px #00FFFF) drop-shadow(0 0 25px rgba(0,255,255,0.8));
-      animation: orb-glow-flicker-keyframe 0.7s infinite linear; /* Re-use flicker for corona on hover */
-    }
-
-    .orb-layer-2-atmosphere {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, rgba(0, 95, 127, 0.4) 20%, #005f7f 80%);
-      transition: background 0.3s ease-in-out;
-    }
-
-    .orb-layer-3-core {
-      position: absolute;
-      width: 55%; /* Relative to parent .orb-container */
-      height: 55%;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, #F0FFFF 5%, #00FFFF 40%, rgba(0,200,255,0.5) 70%);
-      filter: blur(3px);
-      transition: transform 0.3s ease-in-out, filter 0.3s ease-in-out;
-      animation: orb-deep-thrum-core 3s infinite ease-in-out;
-    }
-    .orb-layer-3-core-hover {
-        animation-play-state: paused; /* Stop pulsing */
-        filter: blur(2.5px) brightness(1.15); /* Slightly sharper and brighter for hover before flicker */
-        transform: scale(1.05);
-    }
-
-    .orb-layer-4-lens {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, rgba(200, 220, 255, 0.0) 60%, rgba(150, 200, 255, 0.05) 85%, rgba(100,150,200,0.15) 100%);
-      box-shadow: inset 0 0 0.5px 0.5px rgba(255,255,255,0.6), 
-                  inset 0 0 1px 1px rgba(220,240,255,0.2),
-                  inset 0 0 3px 1px rgba(200,220,255,0.15);
-      animation: orb-lens-sheen 5s infinite ease-in-out;
-      pointer-events: none; /* Allows clicks to pass through to button */
-    }
-    
-    .orb-layer-5-text {
-      position: relative; /* To be on top */
-      z-index: 5;
-      font-family: 'Exo 2', sans-serif;
-      font-weight: 700;
-      color: #FFFFFF;
-      text-align: center;
-      line-height: 1.2;
-      font-size: clamp(0.6rem, 1.5vw, 0.9rem); /* Responsive font size */
-      padding: 0 10%; /* Ensure text doesn't touch edges */
-      pointer-events: none; /* Allows clicks to pass through to button */
-      text-shadow: 0 0 5px rgba(0,0,0,0.5); /* Slight shadow for readability */
-    }
-
-    .orb-lightning-svg {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 55%; /* Should match core size */
-      height: 55%;
-      overflow: visible; /* Arcs can go slightly outside this SVG if needed, but clipped by orb */
-      pointer-events: none;
-      z-index: 4; /* Above core, below lens */
-    }
-    
-    .orb-click-flash-element {
-      position: absolute;
-      width: 60%; /* Cover the core */
-      height: 60%;
-      background-color: white;
-      border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 6; /* On top of everything during flash */
-      transform: scale(0.1);
-    }
-
-    /* Gravity Well specific styles */
-    .gravity-well-container {
-      position: fixed;
-      left: 50%;
-      bottom: 3vh;
-      transform: translateX(-50%);
-      width: 60px; /* Clickable area and container for canvas */
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 25; /* Above background, below most UI */
-      transition: opacity 0.5s ease-out;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .gravity-well-container.fade-out {
-      opacity: 0;
-      /* pointer-events: none; -- managed by hidden class */
-    }
-     .gravity-well-container.hidden {
-      display: none;
-    }
-    .gravity-well-canvas {
-      width: 50px; /* Vortex particle area */
-      height: 50px;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .gravity-well-singularity {
-      width: 6px; /* Core "negative space" */
-      height: 6px;
-      background-color: #000000; /* Vanishing point */
-      border-radius: 50%;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 0 2px 1px rgba(0, 191, 255, 0.2); /* Subtle edge to define it */
-    }
-
-    /* Data Core Environment & HUD Styles */
-    .data-core-hud-element {
-      font-family: 'Roboto Mono', monospace;
-      color: #00FFFF;
-      text-shadow: 0 0 3px #00FFFF, 0 0 5px rgba(0, 255, 255, 0.5);
-      opacity: 0; /* Initial state for animation */
-    }
-
-    .hud-line {
-      background-color: #00FFFF;
-      box-shadow: 0 0 3px #00FFFF;
-      opacity: 0; /* Initial state for animation */
-    }
-    
-    .animate-hud-line-draw { animation: hud-line-draw 0.7s forwards; }
-    .animate-hud-text-flicker { animation: hud-text-flicker 0.5s forwards; }
-
-    @keyframes hud-line-draw {
-      0% { transform: scaleX(0); opacity: 0.5; }
-      100% { transform: scaleX(1); opacity: 1; }
-    }
-
-    @keyframes hud-text-flicker {
-      0%, 20%, 40%, 60%, 80%, 100% { opacity: 1; transform: translateY(0); }
-      10%, 50% { opacity: 0.3; transform: translateY(-1px); }
-      30%, 70%, 90% { opacity: 0.6; transform: translateY(1px) translateX(1px); }
-    }
-    
-    .holographic-video-player {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scaleY(0.01); /* Initial state: collapsed line */
-      width: 70vw; /* Adjust as needed */
-      max-width: 960px;
-      aspect-ratio: 16 / 9;
-      background-color: black;
-      border: 2px solid #00FFFF;
-      box-shadow: 0 0 10px #00FFFF, 0 0 20px rgba(0,255,255,0.5), inset 0 0 8px rgba(0,255,255,0.3);
-      opacity: 0;
-      overflow: hidden; /* Ensure video stays within bounds */
-    }
-
-    .animate-video-player-materialize { animation: video-player-materialize 0.5s forwards; }
-    @keyframes video-player-materialize {
-      0% { transform: translate(-50%, -50%) scaleY(0.01) scaleX(0.8); opacity: 0.5; border-width: 1px;}
-      100% { transform: translate(-50%, -50%) scaleY(1) scaleX(1); opacity: 1; border-width: 2px;}
-    }
-
-    .progress-bar-container {
-        width: 100%;
-        height: 8px; /* Thin bar */
-        background-color: rgba(0, 255, 255, 0.1); /* Faint track */
-        border-radius: 4px;
-        overflow: hidden;
-    }
-    .progress-bar-fill {
-        height: 100%;
-        background-color: #00FFFF;
-        box-shadow: 0 0 5px #00FFFF, 0 0 10px rgba(0,255,255,0.7);
-        border-radius: 4px;
-        transition: width 0.2s linear; /* Smooth progress update */
-    }
-    .fullscreen-flash {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: white;
-        opacity: 0;
-        pointer-events: none;
-        z-index: 99999; /* Highest */
-    }
-    .animate-screen-flash { animation: screen-flash-anim 0.3s ease-out forwards; }
-    @keyframes screen-flash-anim {
-        0% { opacity: 0; }
-        50% { opacity: 1; }
-        100% { opacity: 0; }
-    }
-
 
   </style>
   <script>
@@ -369,48 +128,29 @@
           fontFamily: {
             orbitron: ['Orbitron', 'sans-serif'],
             exo2: ['Exo 2', 'sans-serif'],
-            'roboto-mono': ['Roboto Mono', 'monospace'],
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
+            'pulse-orb': 'pulse-orb-animation 2s infinite',
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
             'fadeIn': 'fadeIn 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
             'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out',
-            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out', 
-            'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards',
-
-            'shard-ingress': 'shard-ingress-anim 1s ease-out forwards',
-            'shard-swarm': 'shard-swarm-anim 1s linear infinite alternate',
-            'shard-coalesce': 'shard-coalesce-anim 0.3s ease-in forwards',
-            'text-snap-in': 'text-snap-in-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards', 
-            'title-impact-flash-main': 'title-impact-flash-main-anim 0.3s ease-out forwards', 
-            'pulsing-blue-text-glow': 'pulsing-blue-text-glow-anim 2s infinite ease-in-out',
-
-            /* Orb Animations */
-            'orb-deep-thrum-corona': 'orb-deep-thrum-corona-keyframe 3s infinite ease-in-out',
-            'orb-deep-thrum-core': 'orb-deep-thrum-core-keyframe 3s infinite ease-in-out',
-            'orb-lens-sheen': 'orb-lens-sheen-keyframe 5s infinite ease-in-out',
-            'orb-glow-flicker': 'orb-glow-flicker-keyframe 0.7s infinite linear',
-            'orb-vibration': 'orb-vibration-keyframe 0.1s infinite linear',
-            'lightning-arc-fade': 'lightning-arc-fade-keyframe 0.3s ease-out forwards', /* Faster arcs */
-            'orb-click-flash': 'orb-click-flash-keyframe 0.3s ease-out forwards',
-
-            /* Data Stream Button Animations */
-            'shimmer-effect': 'shimmer-effect-keyframes 4s linear infinite',
-            'starchart-pan-effect': 'starchart-pan-effect-keyframes 20s linear infinite',
-
-            /* HUD & Video Player Animations */
-            'hud-line-draw': 'hud-line-draw 0.7s forwards',
-            'hud-text-flicker': 'hud-text-flicker 0.5s forwards',
-            'video-player-materialize': 'video-player-materialize 0.5s forwards',
-            'screen-flash': 'screen-flash-anim 0.3s ease-out forwards',
+            // New animations for title
+            'construct-char': 'construct-char-anim 0.4s ease-out forwards', // Duration adjusted
+            'impact-flash': 'impact-flash-anim 0.2s ease-out forwards',
+            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out',
+            'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards', // Average duration
           },
           keyframes: {
             spark: {
               '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
               '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
+            },
+            'pulse-orb-animation': {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' },
+              '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
             },
             typewriter: {
                 from: { width: '0' },
@@ -433,7 +173,18 @@
               '0%, 100%': { opacity: 0.7, transform: 'scale(1)' },
               '50%': { opacity: 1, transform: 'scale(1.1)' },
             },
-            'pulsing-blue-glow-anim': { 
+            // New keyframes for title
+            'construct-char-anim': {
+              '0%': { opacity: '0', transform: 'scale(0.1) rotate(30deg)', color: '#00BFFF' },
+              '70%': { opacity: '1', transform: 'scale(1.15) rotate(-5deg)', color: '#00BFFF' },
+              '100%': { opacity: '1', transform: 'scale(1) rotate(0deg)', color: '#FFFFFF' },
+            },
+            'impact-flash-anim': {
+              '0%': { opacity: '0.7', boxShadow: '0 0 10px 5px white, 0 0 20px 10px white, 0 0 40px 20px rgba(255,255,255,0.7)' },
+              '50%': { opacity: '1', boxShadow: '0 0 20px 10px white, 0 0 40px 20px white, 0 0 80px 40px rgba(255,255,255,0.7)' },
+              '100%': { opacity: '0', boxShadow: 'none' },
+            },
+            'pulsing-blue-glow-anim': {
               '0%, 100%': { 
                 textShadow: '0 0 2px #fff, 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 16px #00BFFF' 
               },
@@ -442,111 +193,9 @@
               },
             },
             'ember-fly-fade-anim': {
-              '0%': { opacity: 'var(--ember-initial-opacity, 1)', transform: 'translate(0, 0) scale(1)' },
+              '0%': { opacity: '1', transform: 'translate(0, 0) scale(1)' },
               '100%': { opacity: '0', transform: 'translate(var(--ember-tx, 0px), var(--ember-ty, 0px)) scale(0.3)' },
             },
-            'shard-ingress-anim': {
-              '0%': { opacity: '0', transform: 'translate(var(--shard-ix), var(--shard-iy)) scale(0.2) rotate(var(--shard-ir))' },
-              '60%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1.2) rotate(0deg)' },
-              '100%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1) rotate(0deg)' }
-            },
-            'shard-swarm-anim': { 
-              '0%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
-              '25%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx1)), calc(var(--shard-cy) + var(--swarm-dy1))) rotate(var(--swarm-r1)) scale(0.9)' },
-              '50%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx2)), calc(var(--shard-cy) + var(--swarm-dy2))) rotate(var(--swarm-r2)) scale(1.1)' },
-              '75%': { transform: 'translate(calc(var(--shard-cx) + var(--swarm-dx3)), calc(var(--shard-cy) + var(--swarm-dy3))) rotate(var(--swarm-r3)) scale(0.95)' },
-              '100%': { transform: 'translate(var(--shard-cx), var(--shard-cy)) rotate(0deg) scale(1)' },
-            },
-            'shard-coalesce-anim': { 
-              '0%': { opacity: '1', transform: 'translate(var(--shard-cx), var(--shard-cy)) scale(1)' },
-              '100%': { opacity: '0', transform: 'translate(var(--shard-finalx), var(--shard-finaly)) scale(0.1)' } 
-            },
-            'text-snap-in-anim': {
-              '0%': { opacity: '0', transform: 'scale(1.8) rotateX(-30deg)', color: '#00BFFF' }, 
-              '70%': { opacity: '1', transform: 'scale(0.9) rotateX(10deg)', color: '#CCFFFF' }, 
-              '100%': { opacity: '1', transform: 'scale(1) rotateX(0deg)', color: '#FFFFFF' } 
-            },
-            'title-impact-flash-main-anim': { 
-              '0%': { opacity: '0.8', transform: 'scale(1.5)', backgroundColor: 'white' },
-              '50%': { opacity: '1', transform: 'scale(2.5)', backgroundColor: 'white' }, 
-              '100%': { opacity: '0', transform: 'scale(0.5)', backgroundColor: 'white' }
-            },
-            'pulsing-blue-text-glow-anim': { 
-              '0%, 100%': { 
-                textShadow: '0 0 3px #fff, 0 0 5px #00BFFF, 0 0 10px #00BFFF, 0 0 15px #00BFFF' 
-              },
-              '50%': { 
-                textShadow: '0 0 5px #fff, 0 0 10px #00BFFF, 0 0 20px #00BFFF, 0 0 30px #00BFFF, 0 0 40px #00BFFF' 
-              },
-            },
-            /* Orb Animations */
-            'orb-deep-thrum-corona-keyframe': {
-              '0%, 100%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 20px rgba(0,191,255,0.65)) opacity(0.9)'},
-              '50%': { filter: 'drop-shadow(0 0 15px #00BFFF) drop-shadow(0 0 28px rgba(0,191,255,0.85)) opacity(1)'},
-            },
-            'orb-deep-thrum-core-keyframe': {
-              '0%, 100%': { transform: 'scale(1)', filter: 'blur(3px) brightness(1)' },
-              '50%': { transform: 'scale(1.08)', filter: 'blur(2.5px) brightness(1.2)' },
-            },
-            'orb-lens-sheen-keyframe': {
-              '0%, 100%': { boxShadow: 'inset 0 0 0.5px 0.5px rgba(255,255,255,0.6), inset 0 0 1px 1px rgba(220,240,255,0.2), inset 0 0 3px 1px rgba(200,220,255,0.15)' },
-              '50%': { boxShadow: 'inset 0 0 0.5px 0.5px rgba(255,255,255,0.7), inset 0 0 2px 1px rgba(220,240,255,0.3), inset 0 0 4px 2px rgba(200,220,255,0.25), 0 0 5px rgba(180,210,255,0.1)' },
-            },
-            'orb-glow-flicker-keyframe': { /* Used for corona hover */
-                '0%': { filter: 'drop-shadow(0 0 12px #00FFFF) drop-shadow(0 0 20px rgba(0,255,255,0.7)) opacity(0.9)' },
-                '15%': { filter: 'drop-shadow(0 0 15px #00FFFF) drop-shadow(0 0 25px rgba(0,255,255,0.8)) opacity(1.0)' },
-                '30%': { filter: 'drop-shadow(0 0 11px #00FFFF) drop-shadow(0 0 18px rgba(0,255,255,0.65)) opacity(0.85)' },
-                '45%': { filter: 'drop-shadow(0 0 16px #00FFFF) drop-shadow(0 0 28px rgba(0,255,255,0.75)) opacity(0.95)' },
-                '60%': { filter: 'drop-shadow(0 0 12px #00FFFF) drop-shadow(0 0 22px rgba(0,255,255,0.7)) opacity(0.9)' },
-                '75%': { filter: 'drop-shadow(0 0 14px #00FFFF) drop-shadow(0 0 23px rgba(0,255,255,0.6)) opacity(0.8)' },
-                '100%': { filter: 'drop-shadow(0 0 12px #00FFFF) drop-shadow(0 0 20px rgba(0,255,255,0.7)) opacity(0.9)' },
-            },
-            'orb-vibration-keyframe': {
-                '0%, 100%': { transform: 'translate(0, 0) rotate(0)' },
-                '20%': { transform: 'translate(0.5px, -0.5px) rotate(0.05deg)' },
-                '40%': { transform: 'translate(-0.5px, 0.5px) rotate(-0.05deg)' },
-                '60%': { transform: 'translate(0.25px, 0.25px) rotate(0.02deg)' },
-                '80%': { transform: 'translate(-0.25px, -0.25px) rotate(-0.02deg)' },
-            },
-            'lightning-arc-fade-keyframe': {
-                '0%': { opacity: '0', strokeDashoffset: '200' }, /* Shorter dashoffset for smaller arcs */
-                '20%': { opacity: '1', strokeDashoffset: '150' },
-                '70%': { opacity: '1', strokeDashoffset: '0' },
-                '100%': { opacity: '0', strokeDashoffset: '0' },
-            },
-            'orb-click-flash-keyframe': {
-                '0%': { transform: 'scale(0.1)', opacity: '0' },
-                '30%': { transform: 'scale(1)', opacity: '0.95' },
-                '100%': { transform: 'scale(1.8)', opacity: '0' },
-            },
-            /* Data Stream Button Animations */
-            'shimmer-effect-keyframes': {
-              '0%': { transform: 'translateX(-100%) skewX(-20deg)' },
-              '100%': { transform: 'translateX(250%) skewX(-20deg)' },
-            },
-            'starchart-pan-effect-keyframes': {
-              '0%': { transform: 'translateX(0%)' },
-              '100%': { transform: 'translateX(-50%)' }, 
-            },
-             /* HUD & Video Player Animations */
-            'hud-line-draw': {
-              '0%': { transform: 'scaleX(0)', opacity: '0.5' },
-              '100%': { transform: 'scaleX(1)', opacity: '1' }
-            },
-            'hud-text-flicker': {
-              '0%, 20%, 40%, 60%, 80%, 100%': { opacity: '1', transform: 'translateY(0) translateX(0)' },
-              '10%, 50%': { opacity: '0.3', transform: 'translateY(-1px) translateX(-0.5px)' },
-              '30%, 70%, 90%': { opacity: '0.6', transform: 'translateY(1px) translateX(0.5px)' }
-            },
-            'video-player-materialize': {
-              '0%': { transform: 'translate(-50%, -50%) scaleY(0.01) scaleX(0.8)', opacity: '0.5', borderWidth: '1px'},
-              '100%': { transform: 'translate(-50%, -50%) scaleY(1) scaleX(1)', opacity: '1', borderWidth: '2px'}
-            },
-            'screen-flash-anim': {
-              '0%': { opacity: '0' },
-              '50%': { opacity: '1' },
-              '100%': { opacity: '0' }
-            }
           },
           colors: {
             cyan: {
@@ -558,7 +207,7 @@
             purple: { DEFAULT: '#a855f7', 50: '#fbf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce', 800: '#6b21a8', 900: '#581c87', 950: '#3b0764'},
             indigo: { DEFAULT: '#6366f1', 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b'}
           },
-          dropShadow: { /* Keep if used elsewhere, Orb uses filter:drop-shadow now */
+          dropShadow: {
             '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4',
           }
         }
@@ -600,8 +249,7 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
     "react/": "https://esm.sh/react@^19.1.0/",
     "three": "https://esm.sh/three@0.160.0",
-    "three/": "https://esm.sh/three@0.160.0/",
-    "gsap": "https://esm.sh/gsap@3.12.5"
+    "three/": "https://esm.sh/three@0.160.0/"
   }
 }
 </script>
@@ -609,7 +257,6 @@
 </head>
 <body class="bg-black font-orbitron scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-indigo-900/50 scrollbar-webkit">
   <div id="root"></div>
-  <div id="fullscreen-flash-container" class="fullscreen-flash"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>
