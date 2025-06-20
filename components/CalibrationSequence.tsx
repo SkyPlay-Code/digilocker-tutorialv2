@@ -9,8 +9,6 @@ interface CalibrationSequenceProps {
   jumpToModule?: CalibrationModule;
 }
 
-// const TOTAL_MODULES = 3; // Authentication, DocumentUpload, PinEncryption. Used for old progress calc.
-
 const ModuleHeader: React.FC<{ title: string; moduleNumber: number, objective?: string }> = ({ title, moduleNumber, objective }) => (
   <div className="mb-4 text-center">
     <p className="text-sm text-cyan-400 tracking-widest">MODULE {String(moduleNumber).padStart(2, '0')}</p>
@@ -20,7 +18,7 @@ const ModuleHeader: React.FC<{ title: string; moduleNumber: number, objective?: 
 );
 
 const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-  <div className="w-full bg-gray-700/50 rounded-full h-2.5 mb-6 hud-element">
+  <div className="w-full bg-gray-700/50 rounded-full h-2.5 mb-6 hud-element relative">
     <div
       className="bg-cyan-400 h-2.5 rounded-full transition-all duration-500 ease-out"
       style={{ width: `${progress}%` }}
@@ -29,24 +27,22 @@ const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
   </div>
 );
 
-// --- Module Props Interface ---
 interface ModuleProps {
   onComplete: () => void;
   isActive: boolean;
-  setVoiceMessage: (message: string) => void; // Allow module to request voice messages
+  setVoiceMessage: (message: string) => void;
 }
 
-// --- NEW AuthenticationModule (Sigil Trace) ---
 const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, setVoiceMessage: setParentVoiceMessage }) => {
   const SIGIL_NODES = [
-    { id: 0, x: 20, y: 50, isStart: true },
-    { id: 1, x: 40, y: 25 },
+    { id: 0, x: 25, y: 50, isStart: true }, // Adjusted for better centering/layout
+    { id: 1, x: 45, y: 25 },
     { id: 2, x: 75, y: 35 },
-    { id: 3, x: 65, y: 75 },
-    { id: 4, x: 30, y: 70, isEnd: true },
+    { id: 3, x: 60, y: 75 },
+    { id: 4, x: 30, y: 65, isEnd: true },
   ];
-  const TIME_LIMIT = 7; // seconds
-  const TRACE_TOLERANCE = 3; // pixels from line
+  const TIME_LIMIT = 7; 
+  const TRACE_TOLERANCE = 5; // pixels from line (increased slightly for usability)
 
   const [status, setStatus] = useState<'idle' | 'materializing' | 'awaitingTrace' | 'tracing' | 'success' | 'failed' | 'resetting'>('idle');
   const [tracedSegments, setTracedSegments] = useState<boolean[]>(new Array(SIGIL_NODES.length - 1).fill(false));
@@ -58,7 +54,7 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
 
   const svgRef = useRef<SVGSVGElement>(null);
   const timerIntervalRef = useRef<number | null>(null);
-  const attemptRef = useRef(0); // To handle initial voice line vs retry
+  const attemptRef = useRef(0); 
 
   const resetState = useCallback((isRetry = false) => {
     setStatus('materializing');
@@ -66,21 +62,20 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
     setCurrentNodeIndex(0);
     setTimeLeft(TIME_LIMIT);
     setFeedbackText(null);
-    setShowSigil(false); // Will be set to true after materialization
+    setShowSigil(false); 
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
 
     if (isRetry) {
       setParentVoiceMessage("Re-calibrating. Please try again.");
-    } else if (attemptRef.current === 0) {
-      // This voice line is set by parent when module becomes active for the first time
     }
+    // Initial voice line is handled by parent CalibrationSequence
+
     attemptRef.current += 1;
 
-    // Stagger materialization after voice line
     setTimeout(() => {
-        setShowSigil(true); // Trigger line drawing animation
-        // Line drawing animation is 1s, then start timer
+        setShowSigil(true); 
         setTimeout(() => {
+            if (!isActive) return; // Guard against component unmount during timeout
             setStatus('awaitingTrace');
             timerIntervalRef.current = window.setInterval(() => {
                 setTimeLeft(prev => {
@@ -92,23 +87,25 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
                     return prev - 1;
                 });
             }, 1000);
-        }, 1000); // Duration of line drawing animation
-    }, isRetry ? 1500 : 500); // Shorter delay if not first attempt's voice line. First attempt voice handled by parent.
-  }, [setParentVoiceMessage]);
+        }, 1000); 
+    }, isRetry ? 1500 : 500); 
+  }, [setParentVoiceMessage, isActive]); // Added isActive to dependency array
 
   useEffect(() => {
     if (isActive) {
-      resetState(attemptRef.current > 0);
+      // Parent sets initial voice message, resetState handles retries.
+      resetState(attemptRef.current > 0 && status !== 'idle'); // Only consider retry if not first idle load
     } else {
       setStatus('idle');
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       setShowSigil(false);
+      attemptRef.current = 0; // Reset attempts when module becomes inactive
     }
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
+  }, [isActive]); // Removed resetState from deps to avoid loop with its own isActive dep
 
 
   const getLocalCoordinates = (event: React.MouseEvent): { x: number, y: number } | null => {
@@ -118,8 +115,13 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
     svgPoint.y = event.clientY;
     const CTM = svgRef.current.getScreenCTM();
     if (!CTM) return null;
-    const localPoint = svgPoint.matrixTransform(CTM.inverse());
-    return { x: localPoint.x, y: localPoint.y };
+    try {
+        const localPoint = svgPoint.matrixTransform(CTM.inverse());
+        return { x: localPoint.x, y: localPoint.y };
+    } catch(e) {
+        console.error("Error transforming point:", e);
+        return null;
+    }
   };
 
   const distanceToLineSegment = (p: {x:number, y:number}, v: {x:number, y:number}, w: {x:number, y:number}) => {
@@ -131,13 +133,12 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
     return Math.sqrt((p.x - projection.x)**2 + (p.y - projection.y)**2);
   };
 
-
-  const handleMouseDown = (event: React.MouseEvent, nodeId: number) => {
-    if (status !== 'awaitingTrace' && status !== 'tracing') return;
-    if (nodeId === SIGIL_NODES[currentNodeIndex].id) {
-      setStatus('tracing');
-      const coords = getLocalCoordinates(event);
-      if (coords) setCursorPos(coords);
+  const handleMouseDown = (event: React.MouseEvent<SVGElement>, nodeId: number) => {
+    if (status !== 'awaitingTrace' || currentNodeIndex !== nodeId || !SIGIL_NODES[nodeId]?.isStart) return;
+     if (nodeId === SIGIL_NODES[currentNodeIndex].id) {
+        setStatus('tracing');
+        const coords = getLocalCoordinates(event);
+        if (coords) setCursorPos(coords);
     }
   };
 
@@ -151,7 +152,7 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
     const startNode = SIGIL_NODES[currentNodeIndex];
     const endNode = SIGIL_NODES[currentNodeIndex + 1];
 
-    if (!endNode) return; // Should not happen if logic is correct
+    if (!endNode) return; 
 
     const distToSegment = distanceToLineSegment(coords, startNode, endNode);
     if (distToSegment > TRACE_TOLERANCE) {
@@ -159,30 +160,42 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
       return;
     }
 
-    // Check if cursor is near the endNode of the current segment
     const distToEndNode = Math.sqrt((coords.x - endNode.x)**2 + (coords.y - endNode.y)**2);
-    if (distToEndNode < 3) { // Consider node vicinity as 'reached'
+    if (distToEndNode < TRACE_TOLERANCE + 2) { // Node "capture" radius
       const newTracedSegments = [...tracedSegments];
       newTracedSegments[currentNodeIndex] = true;
       setTracedSegments(newTracedSegments);
-      setCurrentNodeIndex(prev => prev + 1);
-
-      if (currentNodeIndex + 1 === SIGIL_NODES.length -1) { // Reached the start of the last segment (approaching final node)
-        // User still needs to trace to the final node and release
+      
+      if (currentNodeIndex + 1 < SIGIL_NODES.length -1) {
+          setCurrentNodeIndex(prev => prev + 1);
+      } else if (currentNodeIndex + 1 === SIGIL_NODES.length -1) { // Reached the final node
+          // Check if it's actually the final node being approached
+          if(SIGIL_NODES[currentNodeIndex + 1].isEnd) {
+            // No explicit state change here, waiting for mouseUp on final node
+            // setCurrentNodeIndex can be incremented to SIGIL_NODES.length -1 here
+             setCurrentNodeIndex(prev => prev + 1);
+          }
       }
     }
   };
 
   const handleMouseUp = (event: React.MouseEvent) => {
-    if (status !== 'tracing') return;
-    setCursorPos(null); // Hide custom cursor
+    if (status !== 'tracing') {
+        if(status === 'awaitingTrace' && svgRef.current?.contains(event.target as Node)) {
+            // If clicked somewhere not on the start node while awaiting trace
+        }
+        return;
+    }
+    setCursorPos(null); 
 
-    const finalNode = SIGIL_NODES[SIGIL_NODES.length - 1];
+    const finalNodeInfo = SIGIL_NODES[SIGIL_NODES.length - 1];
     const coords = getLocalCoordinates(event);
 
-    if (coords && currentNodeIndex === SIGIL_NODES.length - 1 && // All segments should be conceptually traced
+    if (coords && 
+        currentNodeIndex === SIGIL_NODES.length - 1 && // Must be at the stage of approaching the final node
         tracedSegments.every(s => s === true) &&
-        Math.sqrt((coords.x - finalNode.x)**2 + (coords.y - finalNode.y)**2) < 4 // Released on final node
+        finalNodeInfo.isEnd &&
+        Math.sqrt((coords.x - finalNodeInfo.x)**2 + (coords.y - finalNodeInfo.y)**2) < TRACE_TOLERANCE + 3 // Released on final node
     ) {
       handleSuccess();
     } else {
@@ -190,94 +203,117 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
     }
   };
   
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (event: React.MouseEvent) => {
     if (status === 'tracing') {
         setCursorPos(null);
-        handleFailure('fail_path'); // Or 'fail_release'
+        handleFailure('fail_path');
     }
   };
 
   const handleSuccess = () => {
+    if (status === 'success' || status === 'failed') return;
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setStatus('success');
     setFeedbackText("SIGNATURE VERIFIED");
-    // Play success chime (conceptual)
+    console.log("Audio Cue: Success CHIME"); // Conceptual Audio
     setTimeout(() => {
-      setShowSigil(false); // Dissolve animation
+      setShowSigil(false); 
       setFeedbackText(null);
-      setTimeout(onComplete, 1000); // Delay before calling onComplete
+      setTimeout(onComplete, 1000); 
     }, 1500);
   };
 
   const handleFailure = (reason: 'fail_path' | 'fail_release' | 'fail_time') => {
-    if (status === 'failed' || status === 'success' || status === 'resetting') return; // Prevent multiple failure calls
+    if (status === 'failed' || status === 'success' || status === 'resetting') return; 
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setStatus('failed');
     setCursorPos(null);
     setFeedbackText("SIGNATURE CORRUPTED. RE-ATTEMPTING...");
-    // Play error sound (conceptual)
+    console.log("Audio Cue: Failure BUZZER"); // Conceptual Audio
     setTimeout(() => {
-        setFeedbackText(null); // Clear message
+        setFeedbackText(null); 
         setStatus('resetting');
-        resetState(true); // Trigger reset with retry voice line
-    }, 2500); // Glitch/message display time
+        resetState(true); 
+    }, 2500); 
   };
 
-  if (!isActive) return null;
+  if (!isActive && status === 'idle') return null; // Only render if active or needs to animate out
 
   const getLineStatusColor = (index: number) => {
-    if (status === 'failed') return "stroke-red-500";
-    if (status === 'success' || tracedSegments[index]) return "stroke-green-400"; // #00FF7F
-    return "stroke-blue-500"; // #00BFFF
+    if (status === 'failed') return "stroke-red-500"; // Tailwind red-500
+    if (status === 'success' || tracedSegments[index]) return "stroke-green-400"; // Tailwind green-400 (#00FF7F is approx)
+    return "stroke-[#00BFFF]"; // Neutral blue
   };
   
   const getNodeStatusColor = (nodeId: number) => {
+    const node = SIGIL_NODES[nodeId];
     if (status === 'failed') return "fill-red-500";
     if (status === 'success') return "fill-green-400";
-    if (nodeId < currentNodeIndex || (nodeId === currentNodeIndex && tracedSegments[nodeId-1])) return "fill-green-400";
-    if (nodeId === SIGIL_NODES[currentNodeIndex].id && (status === 'awaitingTrace' || status === 'tracing')) return "fill-cyan-300 animate-pulse"; // Pulsing current/next node
-    return "fill-blue-500";
+    
+    // If segment leading to this node is traced, or if it's the start node and we are about to trace from it
+    if (nodeId > 0 && tracedSegments[nodeId-1]) return "fill-green-400"; // Node reached
+    if (nodeId === 0 && currentNodeIndex === 0 && (status === 'awaitingTrace' || status === 'tracing')) return "fill-[#00BFFF] animate-sigil-pulse-bright"; // Start node ready
+    if (nodeId === currentNodeIndex && (status === 'awaitingTrace' || status === 'tracing')) return "fill-cyan-300 animate-sigil-pulse-bright";
+
+    return "fill-[#00BFFF]";
   };
 
   const timerPath = () => {
-    const angle = (timeLeft / TIME_LIMIT) * 360;
-    const radius = 40;
-    const x = 50 + radius * Math.cos(Math.PI/2 - (angle * Math.PI / 180));
-    const y = 50 - radius * Math.sin(Math.PI/2 - (angle * Math.PI / 180));
-    const largeArcFlag = angle > 180 ? 1 : 0;
-    if (angle === 0) return ""; // No arc if time is up
-    if (angle >= 360) return `M 50,10 A ${radius},${radius} 0 1 1 49.99,10 Z`; // Full circle slightly broken to render
-    return `M 50,10 A ${radius},${radius} 0 ${largeArcFlag} 1 ${x},${y}`;
+    const angle = Math.max(0, (timeLeft / TIME_LIMIT) * 360);
+    const radius = 45; // slightly larger radius for timer circle
+    const center = 50;
+    
+    if (angle <= 0.01) return ""; // Effectively empty
+    if (angle >= 359.99) return `M ${center},${center-radius} A ${radius},${radius} 0 1 1 ${center-0.01},${center-radius} Z`; // Full circle (approx)
+
+    const startX = center;
+    const startY = center - radius;
+    const radians = (360 - angle) * Math.PI / 180; // Corrected angle for arc drawing
+    const endX = center + radius * Math.sin(radians);
+    const endY = center - radius * Math.cos(radians);
+    const largeArcFlag = (360 - angle) > 180 ? 1 : 0;
+
+    return `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${endX} ${endY}`;
   };
+
+  const svgClasses = `w-full max-w-md h-72 transition-opacity duration-500 ease-in-out hud-element border border-cyan-700/30 rounded-lg 
+    ${(status === 'failed' && feedbackText) ? 'animate-sigil-shake' : ''}
+    ${showSigil || (status === 'success' && feedbackText) || (status === 'failed' && feedbackText) ? 'opacity-100' : 'opacity-0'}
+    ${status === 'tracing' ? 'cursor-none' : ''}`;
 
 
   return (
-    <div className={`flex flex-col items-center relative ${status === 'tracing' ? 'cursor-none' : ''}`} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-       <svg ref={svgRef} viewBox="0 0 100 100" className={`w-full max-w-md h-72 transition-opacity duration-500 ease-in-out hud-element border border-cyan-700/30 rounded-lg 
-        ${(status === 'failed' && feedbackText) ? 'animate-[shake_0.5s_ease-in-out]' : ''}
-        ${showSigil ? 'opacity-100' : 'opacity-0'}`}
-        style={{ animationIterationCount: (status === 'failed' && feedbackText) ? '1' : undefined }}
+    <div 
+      className={`flex flex-col items-center relative ${status === 'tracing' ? 'cursor-none' : ''}`}
+      onMouseUpCapture={(e: React.MouseEvent<HTMLDivElement>) => { if (status === 'tracing') handleMouseUp(e); }}
+      onMouseMoveCapture={(e: React.MouseEvent<HTMLDivElement>) => { if (status === 'tracing') handleMouseMove(e); }}
+      onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { if (status === 'tracing') handleMouseLeave(e); }}
+    >
+       <svg ref={svgRef} viewBox="0 0 100 100" className={svgClasses}
        >
         {/* Timer */}
-        { (status === 'awaitingTrace' || status === 'tracing') &&
-            <path d={timerPath()} strokeWidth="3" stroke="#8B5CF6" fill="none" className="transition-all duration-200" />
+        { (status === 'awaitingTrace' || status === 'tracing') && timeLeft > 0 &&
+            <path d={timerPath()} strokeWidth="2" stroke="#8B5CF6" fill="none" className="transition-all duration-200" />
         }
 
         {/* Sigil Lines */}
         {SIGIL_NODES.slice(0, -1).map((node, index) => {
           const nextNode = SIGIL_NODES[index + 1];
+          const lineLength = Math.sqrt(Math.pow(nextNode.x - node.x, 2) + Math.pow(nextNode.y - node.y, 2));
           return (
             <line
               key={`line-${index}`}
               x1={node.x} y1={node.y}
               x2={nextNode.x} y2={nextNode.y}
               className={`${getLineStatusColor(index)} transition-all duration-300`}
-              strokeWidth="1"
+              strokeWidth="1.2"
+              strokeDasharray={lineLength}
+              strokeDashoffset={status === 'materializing' && showSigil ? 0 : lineLength}
               style={{
-                strokeDasharray: status === 'materializing' ? '100' : 'none',
-                strokeDashoffset: status === 'materializing' ? (showSigil ? 0 : 100) : 0,
-                animation: status === 'materializing' ? `draw-line 1s ease-out ${index * 0.15}s forwards` : 'none',
-                opacity: (status === 'materializing' && !showSigil) ? 0 : 1, // Start hidden then draw
+                transitionProperty: 'stroke-dashoffset, stroke',
+                transitionDuration: status === 'materializing' ? '1s' : '0.3s',
+                transitionDelay: status === 'materializing' ? `${index * 0.15}s` : '0s',
+                opacity: (status === 'materializing' && !showSigil) ? 0 : 1,
               }}
             />
           );
@@ -287,11 +323,12 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
         {SIGIL_NODES.map(node => (
           <circle
             key={`node-${node.id}`}
-            cx={node.x} cy={node.y} r="2.5"
-            className={`${getNodeStatusColor(node.id)} transition-colors duration-300 ${(node.isStart && (status === 'awaitingTrace' || status === 'tracing')) ? 'cursor-pointer' : ''}`}
-            onMouseDown={(e) => (node.isStart && currentNodeIndex === 0) ? handleMouseDown(e, node.id) : null}
+            cx={node.x} cy={node.y} r="3" // Slightly larger nodes
+            className={`${getNodeStatusColor(node.id)} transition-colors duration-300 
+                        ${(node.isStart && currentNodeIndex === 0 && (status === 'awaitingTrace' || status === 'materializing')) ? 'cursor-pointer' : ''}`}
+            onMouseDown={(e) => (node.isStart && currentNodeIndex === 0 && status === 'awaitingTrace') ? handleMouseDown(e, node.id) : undefined}
              style={{
-                animation: (status === 'materializing' && showSigil) ? `fade-in 0.5s ease-out ${node.id * 0.15 + 0.5}s forwards` : 'none',
+                animation: (status === 'materializing' && showSigil) ? `sigil-node-fade-in-anim 0.5s ease-out ${node.id * 0.15 + 0.5}s forwards` : 'none',
                 opacity: (status === 'materializing' && !showSigil) ? 0 : 1,
             }}
           />
@@ -299,48 +336,34 @@ const AuthenticationModule: React.FC<ModuleProps> = ({ onComplete, isActive, set
 
         {/* Feedback Text */}
         {feedbackText && (
-          <text x="50" y="50" textAnchor="middle" dominantBaseline="middle"
-            className={`font-orbitron text-5xl transition-opacity duration-300 ease-in-out
-                        ${status === 'success' ? 'fill-green-400 text-glow-green' : ''}
-                        ${status === 'failed' ? 'fill-red-500 text-glow-red' : ''}
-                        ${(status === 'success' || status === 'failed') && !showSigil ? 'opacity-0' : 'opacity-100' }`} // For dissolve
+          <text x="50" y="50" textAnchor="middle" dominantBaseline="central" // Changed to central for better alignment
+            className={`font-mono text-5xl transition-opacity duration-300 ease-in-out pointer-events-none
+                        ${status === 'success' ? 'fill-green-300 text-glow-green' : ''} 
+                        ${status === 'failed' ? 'fill-red-400 text-glow-red font-orbitron' : 'font-mono'}
+                        ${(status === 'success' || status === 'failed') && !showSigil ? 'opacity-0' : 'opacity-100' }`}
+             style={{ fontSize: '7px' }} // SVG font size
           >
             {feedbackText.split('.')[0]}
           </text>
         )}
          {feedbackText && feedbackText.includes("RE-ATTEMPTING") && (
-            <text x="50" y="60" textAnchor="middle" dominantBaseline="middle"
-                className={`font-orbitron text-2xl fill-red-400 transition-opacity duration-300 ease-in-out
+            <text x="50" y="60" textAnchor="middle" dominantBaseline="central"
+                className={`font-orbitron fill-red-400 transition-opacity duration-300 ease-in-out pointer-events-none
                             ${(status === 'success' || status === 'failed') && !showSigil ? 'opacity-0' : 'opacity-100' }`}
+                style={{ fontSize: '3px' }} // SVG font size
             >
                 RE-ATTEMPTING...
             </text>
          )}
          {/* Custom cursor dot */}
         {status === 'tracing' && cursorPos && (
-            <circle cx={cursorPos.x} cy={cursorPos.y} r="1.5" fill="#00FF7F" className="pointer-events-none drop-shadow-[0_0_3px_#00FF7F]" />
+            <circle cx={cursorPos.x} cy={cursorPos.y} r="2" fill="#00FF7F" className="pointer-events-none drop-shadow-[0_0_4px_#00FF7F]" />
         )}
       </svg>
-      <style>{`
-        @keyframes draw-line {
-          from { stroke-dashoffset: 100; opacity: 0; }
-          to { stroke-dashoffset: 0; opacity: 1; }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-          20%, 40%, 60%, 80% { transform: translateX(3px); }
-        }
-        .text-glow-green {
-          text-shadow: 0 0 5px rgba(0,255,127,0.7), 0 0 10px rgba(0,255,127,0.5);
-        }
-        .text-glow-red {
-          text-shadow: 0 0 5px rgba(255,0,0,0.7), 0 0 10px rgba(255,0,0,0.5);
-        }
+      {/* Fallback cursor none for the div if SVG doesn't capture it perfectly */}
+      <style>{` 
+        .animate-sigil-pulse-bright { animation: sigil-pulse-bright-anim 1.2s infinite ease-in-out; }
+        .animate-sigil-shake { animation: sigil-shake-anim 0.4s 1 ease-in-out; }
       `}</style>
     </div>
   );
@@ -364,7 +387,7 @@ const DocumentUploadModule: React.FC<ModuleProps> = ({ onComplete, isActive }) =
     if (event.target.files && event.target.files[0]) {
       setFileName(event.target.files[0].name);
       setIsUploading(true);
-      setUploadProgress(0); // Reset progress
+      setUploadProgress(0); 
 
       let currentProgress = 0;
       const interval = setInterval(() => {
@@ -385,7 +408,6 @@ const DocumentUploadModule: React.FC<ModuleProps> = ({ onComplete, isActive }) =
 
   return (
     <div className="flex flex-col items-center text-center">
-      {/* Objective text is now part of ModuleHeader */}
       <label htmlFor="file-upload" className={`cursor-pointer p-6 border-2 border-dashed border-cyan-500/70 rounded-lg hud-element hover:border-cyan-400 transition-colors
                                              ${isUploading ? 'opacity-50' : ''}`}>
         <DocumentArrowUpIcon className="w-16 h-16 mx-auto text-cyan-400 mb-2" />
@@ -498,12 +520,14 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
   const [completedModules, setCompletedModules] = useState<CalibrationModule[]>([]);
   const [voiceMessage, setVoiceMessage] = useState("Initializing calibration sequence...");
   const fractalTimelineRef = useRef<HTMLDivElement>(null);
+  const hasSetInitialAuthVoiceLine = useRef(false);
+
 
   const moduleDetails: Record<CalibrationModule, { title: string; objective?: string; number: number }> = {
     [CalibrationModule.Authentication]: { title: "Identity Authentication", objective: "Authenticate Biometric Signature", number: 1 },
     [CalibrationModule.DocumentUpload]: { title: "Document Materialization", objective: "Materialize your first data-construct.", number: 2 },
     [CalibrationModule.PinEncryption]: { title: "Quantum Pin Encryption", objective: "Set your 6-digit quantum entanglement key.", number: 3 },
-    [CalibrationModule.Completed]: { title: "Calibration Complete", number: 4 }, // Not displayed as a regular module
+    [CalibrationModule.Completed]: { title: "Calibration Complete", number: 4 }, 
     [CalibrationModule.Intro]: { title: "Introduction", number: 0 },
   };
   
@@ -514,15 +538,19 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       if (jumpToModule === CalibrationModule.DocumentUpload) modulesToComplete.push(CalibrationModule.Authentication);
       if (jumpToModule === CalibrationModule.PinEncryption) modulesToComplete.push(CalibrationModule.Authentication, CalibrationModule.DocumentUpload);
       setCompletedModules(prev => [...new Set([...prev, ...modulesToComplete])]);
+      hasSetInitialAuthVoiceLine.current = true; // If jumping past auth, assume initial line not needed.
     }
   }, [jumpToModule, currentModule]);
 
   useEffect(() => {
     switch (currentModule) {
       case CalibrationModule.Authentication:
-        // Set initial voice message for Module 1, allowing module to handle retries
-        if (!completedModules.includes(CalibrationModule.Authentication)) { // Only set initial if not already passed/retrying
+        if (!completedModules.includes(CalibrationModule.Authentication) && !hasSetInitialAuthVoiceLine.current) {
              setVoiceMessage("Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
+             hasSetInitialAuthVoiceLine.current = true;
+        } else if (completedModules.includes(CalibrationModule.Authentication)) {
+            // If returning to a completed auth module, perhaps a neutral message or module title.
+            // For now, AuthenticationModule will handle its own retry messages.
         }
         break;
       case CalibrationModule.DocumentUpload:
@@ -543,7 +571,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
   const handleModuleComplete = useCallback(() => {
     setCompletedModules(prev => {
         const newCompleted = [...new Set([...prev, currentModule])];
-        if (currentModule === CalibrationModule.Authentication) setCurrentModule(CalibrationModule.DocumentUpload);
+        if (currentModule === CalibrationModule.Authentication) {
+             setCurrentModule(CalibrationModule.DocumentUpload);
+             hasSetInitialAuthVoiceLine.current = true; // Mark Auth as "passed" for voice line logic
+        }
         else if (currentModule === CalibrationModule.DocumentUpload) setCurrentModule(CalibrationModule.PinEncryption);
         else if (currentModule === CalibrationModule.PinEncryption) setCurrentModule(CalibrationModule.Completed);
         return newCompleted;
@@ -565,6 +596,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         (module === CalibrationModule.PinEncryption && completedModules.includes(CalibrationModule.DocumentUpload))
      ) {
       setCurrentModule(module);
+       if (module >= CalibrationModule.Authentication) {
+         hasSetInitialAuthVoiceLine.current = true; // If jumping to or past Auth, mark initial voice as handled.
+       }
      }
   };
 
@@ -579,7 +613,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         </button>
 
         <div className="text-center mb-2">
-          <p className="text-sm text-cyan-400 tracking-wider">CALIBRATION PROTOCOL V2.8</p> {/* Version bump */}
+          <p className="text-sm text-cyan-400 tracking-wider">CALIBRATION PROTOCOL V2.8</p>
           <h1 className="text-4xl font-bold text-glow-blue">SYNAPSE CALIBRATION</h1>
         </div>
 
