@@ -52,6 +52,15 @@ interface LightningArc {
   d: string;
 }
 
+const StarChartStar = React.memo(({ style }: { style: React.CSSProperties }) => (
+  <span className="absolute w-0.5 h-0.5 bg-white rounded-full" style={style}></span>
+));
+
+const StarChartLine = React.memo(({ style }: { style: React.CSSProperties }) => (
+  <span className="absolute h-px bg-cyan-600/50" style={style}></span>
+));
+
+
 const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapDataStream }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [typedSubtitle, setTypedSubtitle] = useState('');
@@ -159,19 +168,17 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     const startX = orbRadius + Math.cos(angleStart) * orbRadius;
     const startY = orbRadius + Math.sin(angleStart) * orbRadius;
 
-    // End on the orb's boundary for simplicity (arcs contained within orb button)
     const angleEnd = Math.random() * Math.PI * 2;
     let endX = orbRadius + Math.cos(angleEnd) * orbRadius;
     let endY = orbRadius + Math.sin(angleEnd) * orbRadius;
 
-    // Ensure arcs are not too small
     if (Math.hypot(endX - startX, endY - startY) < orbRadius / 2) {
         endX = orbRadius + Math.cos(angleEnd + Math.PI/2) * orbRadius;
         endY = orbRadius + Math.sin(angleEnd + Math.PI/2) * orbRadius;
     }
     
     const midPoints = [];
-    const numSegments = Math.floor(Math.random() * 2) + 2; // 2-3 jagged segments
+    const numSegments = Math.floor(Math.random() * 2) + 2; 
     for (let i = 1; i < numSegments; i++) {
         const t = i / numSegments;
         const baseX = startX + (endX - startX) * t;
@@ -190,7 +197,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
         if (!orbRef.current) return;
         const orbRadius = orbRef.current.offsetWidth / 2;
         const newArcs: LightningArc[] = [];
-        const arcCount = Math.floor(Math.random() * 2) + 2; // 2-3 arcs
+        const arcCount = Math.floor(Math.random() * 2) + 2; 
         for (let i = 0; i < arcCount; i++) {
           newArcs.push({
             id: `arc-${Date.now()}-${i}`,
@@ -198,7 +205,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           });
         }
         setLightningArcs(newArcs);
-      }, 400); // Generate new arcs every 400ms
+      }, 400); 
     } else {
       if (lightningIntervalRef.current) {
         clearInterval(lightningIntervalRef.current);
@@ -218,22 +225,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
     }
     if (orbClickFlashRef.current) {
         orbClickFlashRef.current.classList.remove('animate-orb-click-flash');
-        void orbClickFlashRef.current.offsetWidth; // Trigger reflow
+        void orbClickFlashRef.current.offsetWidth; 
         orbClickFlashRef.current.classList.add('animate-orb-click-flash');
     }
   };
   const handleOrbMouseUp = () => {
-     if (orbRef.current && !orbClicked) { // Prevent scale back if click animation started
+     if (orbRef.current && !orbClicked) { 
         orbRef.current.style.transform = 'scale(1)';
     }
   };
    const handleOrbClick = () => {
-    setOrbClicked(true); // Indicate click processing
-    // Visual feedback already handled by mousedown.
-    // Call the main action.
+    setOrbClicked(true); 
     onInitiateCalibration();
-    // Reset orb state after a short delay if needed, or App.tsx handles view change
-    // setTimeout(() => setOrbClicked(false), 1000); 
   };
 
 
@@ -483,6 +486,27 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const dataStreamStarStyles: React.CSSProperties[] = React.useMemo(() => [
+    { top: '15%', left: '10%' }, { top: '30%', left: '25%' }, { top: '50%', left: '5%' },
+    { top: '70%', left: '15%' }, { top: '85%', left: '30%' }, { top: '20%', left: '40%' },
+    { top: '40%', left: '55%' }, { top: '60%', left: '35%' }, { top: '80%', left: '50%' },
+    { top: '10%', left: '65%' }, { top: '35%', left: '75%' }, { top: '55%', left: '60%' },
+    { top: '75%', left: '80%' }, { top: '90%', left: '68%' }, { top: '5%', left: '90%' },
+    { top: '15%', left: '110%' }, { top: '30%', left: '125%' }, { top: '50%', left: '105%' },
+    { top: '70%', left: '115%' }, { top: '85%', left: '130%' }, { top: '20%', left: '140%' },
+    { top: '40%', left: '155%' }, { top: '60%', left: '135%' }, { top: '80%', left: '150%' },
+  ], []);
+
+  const dataStreamLineStyles: React.CSSProperties[] = React.useMemo(() => [
+    { top: '22%', left: '12%', width: '15%', transform: 'rotate(45deg)' },
+    { top: '60%', left: '8%', width: '20%', transform: 'rotate(-30deg)' },
+    { top: '30%', left: '42%', width: '18%', transform: 'rotate(10deg)' },
+    { top: '70%', left: '40%', width: '15%', transform: 'rotate(70deg)' },
+    { top: '20%', left: '70%', width: '12%', transform: 'rotate(-50deg)' },
+    { top: '22%', left: '112%', width: '15%', transform: 'rotate(45deg)' },
+    { top: '60%', left: '108%', width: '20%', transform: 'rotate(-30deg)' },
+  ], []);
+
 
   return (
     <section id="hero" className="relative font-orbitron min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden">
@@ -579,8 +603,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
           <span className="animate-ping text-purple-300">_</span>
         </p>
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 items-center justify-center">
-          {/* New Orb Button */}
-           <div className="relative w-48 h-48 group"> {/* Container for orb and its effects like lightning */}
+           <div className="relative w-48 h-48 group"> 
             <button
               ref={orbRef}
               onClick={handleOrbClick}
@@ -595,15 +618,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
                          transition-all duration-300 ease-in-out cursor-pointer
                          focus:outline-none focus-visible:ring-4 focus-visible:ring-[#00BFFF]/50
                          ${isOrbHovered ? 'animate-orb-vibration orb-glow-hover animate-orb-glow-flicker' : 'orb-glow-default animate-orb-glow-pulse'}`}
-              style={{
-                WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-              }}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <span className="relative z-10 select-none pointer-events-none max-w-[80%]">
                 INITIATE<br/>CALIBRATION
               </span>
-              
-              {/* Lightning Arcs SVG - positioned absolutely within the button */}
               {isOrbHovered && (
                 <svg 
                     className="absolute inset-0 w-full h-full overflow-hidden rounded-full pointer-events-none z-0" 
@@ -617,40 +636,46 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onInitiateCalibration, onMapD
                         stroke="#00FFFF" 
                         strokeWidth="1" 
                         fill="none" 
-                        className="animate-lightning-arc-fade" // Animation applied here
-                        style={{ strokeLinecap: 'round', strokeDasharray: '500', strokeDashoffset: '500' }} // For drawing effect
+                        className="animate-lightning-arc-fade" 
+                        style={{ strokeLinecap: 'round', strokeDasharray: '500', strokeDashoffset: '500' }} 
                     />
                   ))}
                 </svg>
               )}
-
-              {/* Central Click Flash */}
               <div 
                 ref={orbClickFlashRef}
                 className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full pointer-events-none opacity-0 z-20"
-                // Animation 'animate-orb-click-flash' will be applied on mousedown
               ></div>
             </button>
           </div>
 
           <button
             onClick={onMapDataStream}
-            className="relative w-60 h-16 border-2 border-purple-500 text-purple-300 font-bold text-lg rounded-full 
+            className="relative w-64 h-16 bg-cyan-500/10 border border-cyan-500 text-white 
+                       font-exo2 text-base rounded-full 
                        flex items-center justify-center overflow-hidden group
-                       hover:bg-purple-500/30 hover:text-purple-100 transition-all duration-300"
+                       hover:bg-cyan-500/30 hover:border-cyan-300 
+                       active:scale-98 transition-all duration-500 ease-in-out
+                       focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-500/50"
+             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <span className="relative z-10">MAP THE DATA-STREAM</span>
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="absolute bg-purple-200 rounded-full animate-ping group-hover:animate-none"
-                     style={{
-                       width: `${Math.random()*2+1}px`, height: `${Math.random()*2+1}px`,
-                       top: `${Math.random()*80+10}%`, left: `${Math.random()*80+10}%`,
-                       animationDelay: `${Math.random()*0.5}s`,
-                       animationDuration: `${Math.random()*1+1}s`
-                     }}></div>
-              ))}
+            {/* Shimmer Effect */}
+            <span className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+              <span className="absolute top-0 left-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-effect -translate-x-full"></span>
+            </span>
+
+            {/* Star Chart Container (for hover) */}
+            <div className="absolute inset-0 w-full h-full overflow-hidden rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+              <div className="absolute top-0 left-0 w-[200%] h-full animate-starchart-pan-effect"> {/* This div pans */}
+                {/* Nebula */}
+                <div className="absolute inset-0 bg-gradient-radial from-cyan-900/20 via-cyan-800/5 to-transparent opacity-40"></div>
+                
+                {/* Stars & Lines */}
+                {dataStreamStarStyles.map((style, i) => <StarChartStar key={`star-${i}`} style={style} />)}
+                {dataStreamLineStyles.map((style, i) => <StarChartLine key={`line-${i}`} style={style} />)}
+              </div>
             </div>
+            <span className="relative z-10 select-none">MAP THE DATA-STREAM</span>
           </button>
         </div>
       </div>

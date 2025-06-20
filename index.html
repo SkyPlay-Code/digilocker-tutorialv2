@@ -144,13 +144,10 @@
     /* Orb specific styles */
     .orb-glow-default {
       filter: drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 15px rgba(0,191,255,0.7));
-      /* opacity: 0.9; Initial values that pulse animation will vary */
     }
      .orb-glow-hover {
       filter: drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px rgba(0,191,255,0.8));
     }
-
-
   </style>
   <script>
     tailwind.config = {
@@ -162,7 +159,6 @@
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
-            // 'pulse-orb': 'pulse-orb-animation 2s infinite', /* Old pulse for button, replaced by orb-glow-pulse if orb takes over */
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
             'fadeIn': 'fadeIn 0.5s ease-out',
@@ -178,22 +174,22 @@
             'title-impact-flash-main': 'title-impact-flash-main-anim 0.3s ease-out forwards', 
             'pulsing-blue-text-glow': 'pulsing-blue-text-glow-anim 2s infinite ease-in-out',
 
-            /* New Orb Animations */
+            /* Orb Animations */
             'orb-glow-pulse': 'orb-glow-pulse-keyframe 3s infinite ease-in-out',
             'orb-glow-flicker': 'orb-glow-flicker-keyframe 0.7s infinite linear',
             'orb-vibration': 'orb-vibration-keyframe 0.1s infinite linear',
             'lightning-arc-fade': 'lightning-arc-fade-keyframe 0.4s ease-out forwards',
             'orb-click-flash': 'orb-click-flash-keyframe 0.3s ease-out forwards',
+
+            /* Data Stream Button Animations */
+            'shimmer-effect': 'shimmer-effect-keyframes 4s linear infinite',
+            'starchart-pan-effect': 'starchart-pan-effect-keyframes 20s linear infinite',
           },
           keyframes: {
             spark: {
               '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
               '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
             },
-            /* 'pulse-orb-animation': { // Old button pulse, might be removed if not used by other button
-              '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' },
-              '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
-            }, */
             typewriter: {
                 from: { width: '0' },
                 to: { width: '100%' }
@@ -302,6 +298,15 @@
                 '0%': { transform: 'scale(0.1)', opacity: '0' },
                 '30%': { transform: 'scale(1)', opacity: '1' }, /* Flash appears and covers orb */
                 '100%': { transform: 'scale(1.5)', opacity: '0' }, /* Flash expands and fades */
+            },
+            /* Data Stream Button Animations */
+            'shimmer-effect-keyframes': {
+              '0%': { transform: 'translateX(-100%) skewX(-20deg)' },
+              '100%': { transform: 'translateX(250%) skewX(-20deg)' },
+            },
+            'starchart-pan-effect-keyframes': {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' }, /* Pans half of the 200% width container */
             },
           },
           colors: {
