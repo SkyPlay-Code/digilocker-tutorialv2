@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -75,5 +76,26 @@ export const GlobeAltIcon: React.FC<{ className?: string }> = ({ className }) =>
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c1.355 0 2.707-.186 4-.534m-8 0C5.293 20.466 3.845 21 2.49 21M12 3c1.355 0 2.707.186 4 .534m-8 0C5.293 3.534 3.845 3 2.49 3m19.02 0h.008v.008h-.008V3Zm-5.011-1.025.008.008h.008v-.008h-.008Zm-.008.008-.008-.008v.008h.008ZM12 3.535A9.003 9.003 0 0 0 3.284 6.747M12 3.535A9.003 9.003 0 0 1 20.716 6.747M12 3.535V21" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.284 6.747A8.963 8.963 0 0 1 2.49 9c0 .344.03.682.089 1.011M20.716 6.747A8.963 8.963 0 0 0 21.51 9c0 .344-.03.682-.089 1.011M2.579 10.011A8.968 8.968 0 0 1 12 11.25c.837 0 1.644-.112 2.404-.32M21.421 10.011A8.968 8.968 0 0 0 12 11.25c-.837 0-1.644-.112-2.404-.32" />
+  </svg>
+);
+
+interface LogoIconProps {
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export const LogoIcon: React.FC<LogoIconProps> = ({ className, style }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="1.5" 
+    className={className || "w-8 h-8"}
+    style={style}
+  >
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
   </svg>
 );

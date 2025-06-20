@@ -10,25 +10,47 @@ import { AppView, CalibrationModule } from './types';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.Hero);
-  // For CalibrationSequence, jumpToModule is used when navigating from DataStreamMap
   const [calibrationStartModule, setCalibrationStartModule] = useState<CalibrationModule | undefined>(undefined);
+  
+  const [isTransitioningToCalibration, setIsTransitioningToCalibration] = useState(false);
+  const [showTransitionFlash, setShowTransitionFlash] = useState(false);
 
   const dataStreamMapRef = useRef<HTMLElement>(null);
-  const archivesRef = useRef<HTMLElement>(null); // Example if direct scroll needed
+  const archivesRef = useRef<HTMLElement>(null); 
 
   const handleInitiateCalibration = useCallback(() => {
-    setCalibrationStartModule(undefined); // Start from the beginning
-    setCurrentView(AppView.Calibration);
-    window.scrollTo(0,0); // Scroll to top for calibration view
+    console.log("Initiate calibration triggered");
+    setCalibrationStartModule(undefined); 
+    setIsTransitioningToCalibration(true);
+
+    // Timing for the "Light Speed" transition (total 1.5s)
+    // T=1.2s: Start flash
+    setTimeout(() => {
+      console.log("Transition: Breach flash starts");
+      setShowTransitionFlash(true);
+    }, 1200);
+
+    // T=1.2s + 0.1s (flash duration) = 1.3s: End flash
+    setTimeout(() => {
+      console.log("Transition: Breach flash ends");
+      setShowTransitionFlash(false);
+    }, 1300);
+    
+    // T=1.5s: End transition, switch view
+    setTimeout(() => {
+      console.log("Transition: Complete, switching to Calibration view");
+      setCurrentView(AppView.Calibration);
+      setIsTransitioningToCalibration(false);
+      window.scrollTo(0,0); 
+    }, 1500);
+
   }, []);
 
   const handleCloseCalibration = useCallback(() => {
-    setCurrentView(AppView.Hero); // Or to a different section if preferred
+    setCurrentView(AppView.Hero); 
   }, []);
 
   const handleMapDataStream = useCallback(() => {
-    // Scrolls to the DataStreamMap section if it's part of the main page flow
-    // If DataStreamMap is a separate view, this would change setCurrentView
     if (dataStreamMapRef.current) {
       dataStreamMapRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -41,7 +63,6 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
-    // If returning from calibration, ensure Hero is the default view if not otherwise specified
     if(currentView === AppView.Hero) {
        // Potentially reset scroll or other states if needed
     }
@@ -57,29 +78,38 @@ const App: React.FC = () => {
         />
       )}
 
+      {showTransitionFlash && (
+        <div className="fixed inset-0 bg-white z-[1000] animate-screen-flash-white pointer-events-none"></div>
+      )}
+
       {/* Main page content, conditionally rendered or always present and scrolled to */}
-      <div className={currentView === AppView.Calibration ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 transition-opacity duration-500'}>
+      {/* Hero section is always mounted to handle its transition animation even when view changes */}
+      <div className={currentView === AppView.Calibration && !isTransitioningToCalibration ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 transition-opacity duration-500'}>
         <HeroSection 
           onInitiateCalibration={handleInitiateCalibration}
           onMapDataStream={handleMapDataStream}
+          isTransitioning={isTransitioningToCalibration}
         />
         
-        {/* Wrap sections that need refs for scrolling */}
-        <section ref={dataStreamMapRef}>
-            <DataStreamMap onJumpToSimulation={handleJumpToSimulation} />
-        </section>
-        
-        <ShareSection />
-        
-        <section ref={archivesRef}>
-            <ArchivesSection />
-        </section>
-        
-        <Footer />
+        {/* Only render other sections if not in calibration and not transitioning away from hero */}
+        {currentView === AppView.Hero && !isTransitioningToCalibration && (
+          <>
+            <section ref={dataStreamMapRef}>
+                <DataStreamMap onJumpToSimulation={handleJumpToSimulation} />
+            </section>
+            
+            <ShareSection />
+            
+            <section ref={archivesRef}>
+                <ArchivesSection />
+            </section>
+            
+            <Footer />
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 export default App;
-    

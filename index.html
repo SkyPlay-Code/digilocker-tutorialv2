@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -98,6 +98,9 @@
       font-family: 'Exo 2', sans-serif;
       font-weight: 400;
     }
+    .font-roboto-mono {
+      font-family: 'Roboto Mono', monospace;
+    }
 
     .title-char-construct {
       display: inline-block; /* Required for transform */
@@ -176,6 +179,33 @@
         }
     }
 
+    /* Individual character flicker for HUD */
+    .hud-char-flicker {
+      display: inline-block;
+      opacity: 0;
+      animation: hud-text-flicker-char-anim 0.5s forwards;
+    }
+
+    /* Styles for AuthenticationSigil */
+    .sigil-line-draw {
+        stroke-dasharray: 1000; /* A large enough value to cover any line length */
+        stroke-dashoffset: 1000;
+        animation: sigil-draw-line-anim 1s ease-out forwards;
+    }
+    .sigil-node-materialize {
+        animation: sigil-node-fade-in-anim 0.5s ease-out forwards;
+    }
+    .sigil-node-idle {
+        animation: sigil-node-idle-pulse-anim 2s infinite ease-in-out;
+    }
+    .sigil-node-target {
+        animation: sigil-node-target-pulse-anim 1s infinite ease-in-out;
+    }
+    .sigil-timer-path {
+      stroke-dasharray: 283; /* 2 * PI * 45 (radius of timer circle) */
+      stroke-dashoffset: 0; /* Starts full */
+      /* animation will be controlled by style prop for stroke-dashoffset */
+    }
 
   </style>
   <script>
@@ -185,6 +215,7 @@
           fontFamily: {
             orbitron: ['Orbitron', 'sans-serif'],
             exo2: ['Exo 2', 'sans-serif'],
+            'roboto-mono': ['Roboto Mono', 'monospace'],
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
@@ -198,10 +229,6 @@
             'impact-flash': 'impact-flash-anim 0.25s ease-out forwards', 
             'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out',
             'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards', 
-            'sigil-shake': 'sigil-shake-anim 0.5s ease-in-out',
-            'sigil-line-draw': 'sigil-line-draw-anim 1s ease-out forwards',
-            'sigil-node-fade-in': 'sigil-node-fade-in-anim 0.5s ease-out forwards',
-            'sigil-pulse-bright': 'sigil-pulse-bright-anim 1.5s infinite ease-in-out',
             // Orb Animations
             'orb-deep-thrum-glow': 'orb-deep-thrum-glow-anim 3s infinite ease-in-out',
             'orb-deep-thrum-core-scale': 'orb-deep-thrum-core-scale-anim 3s infinite ease-in-out',
@@ -212,6 +239,25 @@
             // Data Stream Button Animations
             'data-stream-shimmer': 'data-stream-shimmer-anim 4s infinite linear',
             'data-stream-starchart-pan': 'data-stream-starchart-pan-anim 20s linear infinite',
+            // Transition & HUD Animations
+            'screen-flash-white': 'screen-flash-white-anim 0.3s ease-out forwards',
+            'hud-line-draw-x': 'hud-line-draw-x-anim 0.5s ease-out forwards',
+            'hud-line-draw-y': 'hud-line-draw-y-anim 0.5s ease-out forwards',
+            'hud-text-flicker-char': 'hud-text-flicker-char-anim 0.5s forwards', // Applied per character
+            'video-player-expand-y': 'video-player-expand-y-anim 0.5s ease-out forwards',
+            'video-player-border-pulse': 'video-player-border-pulse-anim 2s infinite ease-in-out',
+            // Sigil Animations
+            'sigil-draw-line': 'sigil-draw-line-anim 1s ease-out forwards',
+            'sigil-node-fade-in': 'sigil-node-fade-in-anim 0.5s ease-out forwards .2s', /* delay after line */
+            'sigil-node-idle-pulse': 'sigil-node-idle-pulse-anim 2s infinite ease-in-out',
+            'sigil-node-target-pulse': 'sigil-node-target-pulse-anim 1s infinite ease-in-out',
+            // 'sigil-timer-countdown': 'sigil-timer-countdown-path-anim 7s linear forwards', /* Will be dynamic */
+            'sigil-success-flash': 'sigil-success-flash-overall-anim 0.5s ease-out',
+            'sigil-failure-flash': 'sigil-failure-flash-overall-anim 0.3s ease-out',
+            'sigil-glitch': 'sigil-glitch-effect-anim 0.5s linear infinite',
+            'sigil-feedback-text': 'sigil-feedback-text-materialize-anim 0.5s ease-out forwards',
+            'sigil-dissolve': 'fadeIn 0.5s ease-out reverse forwards', /* Using fadeIn reversed for dissolve */
+
           },
           keyframes: {
             spark: {
@@ -267,24 +313,7 @@
               '0%': { opacity: '1', transform: 'translate(var(--ember-start-x, 0px), var(--ember-start-y, 0px)) scale(1)' },
               '100%': { opacity: '0', transform: 'translate(var(--ember-end-x, 0px), var(--ember-end-y, 0px)) scale(0.2)' },
             },
-            'sigil-shake-anim': {
-              '0%, 100%': { transform: 'translateX(0) rotate(0)' },
-              '10%, 50%, 90%': { transform: 'translateX(-2px) rotate(-0.5deg)' },
-              '30%, 70%': { transform: 'translateX(2px) rotate(0.5deg)' },
-            },
-            'sigil-line-draw-anim': {
-              'from': { strokeDashoffset: 100, opacity: 0 },
-              'to': { strokeDashoffset: 0, opacity: 1 },
-            },
-            'sigil-node-fade-in-anim': {
-              'from': { opacity: 0, transform: 'scale(0.5)' },
-              'to': { opacity: 1, transform: 'scale(1)' },
-            },
-            'sigil-pulse-bright-anim': {
-                '0%, 100%': { fillOpacity: 0.8, filter: 'brightness(1)' },
-                '50%': { fillOpacity: 1, filter: 'brightness(1.5)' }
-            },
-            // Orb Keyframes
+             // Orb Keyframes
             'orb-deep-thrum-glow-anim': {
                 '0%, 100%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px #00BFFF) brightness(1.0)' },
                 '50%': { filter: 'drop-shadow(0 0 18px #00BFFF) drop-shadow(0 0 30px #00BFFF) brightness(1.2)' },
@@ -323,6 +352,80 @@
             'data-stream-starchart-pan-anim': { 
                 '0%': { transform: 'translateX(0%)' },
                 '100%': { transform: 'translateX(-66.666%)' }, 
+            },
+            // New Keyframes for Transition & HUD
+            'screen-flash-white-anim': {
+              '0%': { opacity: '0' },
+              '50%': { opacity: '1' },
+              '100%': { opacity: '0' },
+            },
+            'hud-line-draw-x-anim': {
+              'from': { width: '0%', opacity: '0' },
+              'to': { width: '100%', opacity: '1' },
+            },
+            'hud-line-draw-y-anim': {
+              'from': { height: '0%', opacity: '0' },
+              'to': { height: '100%', opacity: '1' },
+            },
+            'hud-text-flicker-char-anim': { // Animation for each character
+              '0%': { opacity: '0', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' },
+              '20%': { opacity: '1', textShadow: '0 0 2px #00FFFF, 0 0 5px #00FFFF' },
+              '30%': { opacity: '0.3' },
+              '40%': { opacity: '1', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' },
+              '60%': { opacity: '0.5' },
+              '70%': { opacity: '1' },
+              '100%': { opacity: '1', textShadow: '0 0 3px rgba(0,255,255,0.7), 0 0 5px rgba(0,255,255,0.5)'},
+            },
+            'video-player-expand-y-anim': {
+              'from': { transform: 'scaleY(0)', opacity: '0' },
+              'to': { transform: 'scaleY(1)', opacity: '1' },
+            },
+            'video-player-border-pulse-anim': {
+              '0%, 100%': { borderColor: 'rgba(0, 255, 255, 0.7)', boxShadow: '0 0 8px rgba(0,255,255,0.5)' },
+              '50%': { borderColor: 'rgba(0, 255, 255, 1)', boxShadow: '0 0 15px rgba(0,255,255,0.8)' },
+            },
+            // Sigil Keyframes
+            'sigil-draw-line-anim': {
+                'from': { strokeDashoffset: 'var(--line-length, 1000)', opacity: 0 },
+                'to': { strokeDashoffset: 0, opacity: 1 },
+            },
+            'sigil-node-fade-in-anim': {
+                'from': { opacity: 0, transform: 'scale(0.5)' },
+                'to': { opacity: 1, transform: 'scale(1)' },
+            },
+            'sigil-node-idle-pulse-anim': {
+                '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 0.8, filter: 'brightness(100%) drop-shadow(0 0 3px var(--node-color, #00BFFF))' },
+                '50%': { r: 'calc(var(--node-radius, 8) * 1.1)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 6px var(--node-color, #00BFFF))' },
+            },
+            'sigil-node-target-pulse-anim': {
+                '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 5px var(--node-color, #00BFFF))' },
+                '50%': { r: 'calc(var(--node-radius, 8) * 1.2)', opacity: 1, filter: 'brightness(150%) drop-shadow(0 0 10px var(--node-color, #00BFFF))' },
+            },
+            'sigil-success-flash-overall-anim': {
+                '0%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' },
+                '50%': { opacity: 1, filter: 'brightness(250%) drop-shadow(0 0 20px #00FF7F) drop-shadow(0 0 30px white)' },
+                '100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' },
+            },
+            'sigil-failure-flash-overall-anim': {
+                '0%, 100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #EF4444)' },
+                '50%': { opacity: 1, filter: 'brightness(200%) drop-shadow(0 0 15px #EF4444) drop-shadow(0 0 25px red)' },
+            },
+            'sigil-glitch-effect-anim': {
+                '0%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 },
+                '10%': { transform: 'translate(-2px, 1px) skew(-1deg, 0.5deg)', opacity: 0.8 },
+                '20%': { transform: 'translate(1px, -1px) skew(0.5deg, -1deg)', opacity: 1 },
+                '30%': { transform: 'translate(3px, 2px) skew(1.5deg, 0deg)', opacity: 0.7 },
+                '40%': { transform: 'translate(-1px, -2px) skew(-0.5deg, 1deg)', opacity: 1 },
+                '50%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1, filter: 'brightness(150%)' },
+                '60%': { transform: 'translate(2px, -1px) skew(1deg, -0.5deg)', opacity: 0.9 },
+                '70%': { transform: 'translate(-2px, 2px) skew(-1deg, 1deg)', opacity: 1 },
+                '80%': { transform: 'translate(1px, 1px) skew(0.5deg, 0.5deg)', opacity: 0.6 },
+                '90%': { transform: 'translate(-1px, -1px) skew(-0.5deg, -0.5deg)', opacity: 1 },
+                '100%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 },
+            },
+            'sigil-feedback-text-materialize-anim': {
+                '0%': { opacity: 0, transform: 'scale(0.8) translateY(10px)' },
+                '100%': { opacity: 1, transform: 'scale(1) translateY(0px)' },
             },
           },
           colors: {
