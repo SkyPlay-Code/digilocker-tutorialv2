@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -15,16 +15,16 @@
     }
 
     /* Glow effects */
-    .text-glow-cyan {
-      color: #a5f3fc; /* lighter cyan for base */
+    .text-glow-cyan { /* Existing glow, might be used elsewhere */
+      color: #a5f3fc; 
       text-shadow: 0 0 3px rgba(6,182,212,0.7), 0 0 5px rgba(6,182,212,0.5), 0 0 10px rgba(6,182,212,0.3);
     }
     .text-glow-blue {
-      color: #93c5fd; /* lighter blue for base */
+      color: #93c5fd; 
       text-shadow: 0 0 3px rgba(37,99,235,0.7), 0 0 5px rgba(37,99,235,0.5), 0 0 10px rgba(37,99,235,0.3);
     }
     .text-glow-magenta {
-      color: #f0abfc; /* lighter magenta for base */
+      color: #f0abfc;
       text-shadow: 0 0 3px rgba(217,70,239,0.7), 0 0 5px rgba(217,70,239,0.5), 0 0 10px rgba(217,70,239,0.3);
     }
     .box-glow-cyan {
@@ -40,29 +40,29 @@
     /* Glitch effect for copyright */
     .glitch-copyright {
       position: relative;
-      color: #8B5CF6; /* Default color: purple-500 */
+      color: #8B5CF6; 
     }
     .glitch-copyright::before,
     .glitch-copyright::after {
-      content: "© 2024 Quantum Dynamics Corp. All Rights Reserved."; /* Ensure this matches inner text */
+      content: "© 2024 Quantum Dynamics Corp. All Rights Reserved."; 
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: transparent; /* Assuming parent has a dark background */
+      background: transparent; 
       overflow: hidden;
     }
     .glitch-copyright::before {
       left: 2px;
-      text-shadow: -1px 0 #d946ef; /* Magenta */
-      clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%); /* Example clip */
+      text-shadow: -1px 0 #d946ef; 
+      clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%); 
       animation: glitch-anim-1 3s infinite linear alternate-reverse;
     }
     .glitch-copyright::after {
       left: -2px;
-      text-shadow: -1px 0 #06b6d4, 1px 1px #d946ef; /* Cyan and Magenta */
-      clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%); /* Example clip */
+      text-shadow: -1px 0 #06b6d4, 1px 1px #d946ef; 
+      clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%); 
       animation: glitch-anim-2 2.5s infinite linear alternate-reverse;
     }
 
@@ -80,10 +80,46 @@
       75% { clip-path: polygon(0 88%, 100% 88%, 100% 92%, 0 92%); }
       100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
     }
-    .materialize-char { /* Added from HeroSection for title materialization */
-      opacity: 0;
-      animation: materialize 0.5s forwards;
+    
+    .font-exo2-bold {
+      font-family: 'Exo 2', sans-serif;
+      font-weight: 700;
     }
+
+    .title-char-construct {
+      display: inline-block; /* Required for transform */
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+    
+    .title-impact-flash-container {
+      position: relative; /* For pseudo-element flash */
+    }
+    .title-impact-flash-container::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: white;
+      opacity: 0;
+      pointer-events: none;
+      animation-fill-mode: forwards;
+    }
+    
+    .title-final-appearance {
+      color: #FFFFFF; /* Solid white text */
+      /* Pulsing blue inner glow applied by pulsing-blue-glow-anim */
+      animation: pulsing-blue-glow-anim 2s infinite ease-in-out;
+    }
+
+    .ember-particle {
+      position: absolute;
+      border-radius: 50%;
+      background-color: #00BFFF; /* Electric blue */
+      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; /* Blue with cyan corona */
+      pointer-events: none;
+      animation-fill-mode: forwards;
+    }
+
   </style>
   <script>
     tailwind.config = {
@@ -91,16 +127,21 @@
         extend: {
           fontFamily: {
             orbitron: ['Orbitron', 'sans-serif'],
+            exo2: ['Exo 2', 'sans-serif'],
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
             'pulse-orb': 'pulse-orb-animation 2s infinite',
-            'materialize': 'materialize 0.5s forwards',
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
             'fadeIn': 'fadeIn 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
-            'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out', // For 3D crystal
+            'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out',
+            // New animations for title
+            'construct-char': 'construct-char-anim 0.4s ease-out forwards', // Duration adjusted
+            'impact-flash': 'impact-flash-anim 0.2s ease-out forwards',
+            'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out',
+            'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards', // Average duration
           },
           keyframes: {
             spark: {
@@ -110,10 +151,6 @@
             'pulse-orb-animation': {
               '0%, 100%': { boxShadow: '0 0 0 0 rgba(6, 182, 212, 0.7)' },
               '50%': { boxShadow: '0 0 0 10px rgba(6, 182, 212, 0)' },
-            },
-            materialize: {
-              '0%': { opacity: '0', transform: 'translateY(20px) scale(0.8)' },
-              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
             },
             typewriter: {
                 from: { width: '0' },
@@ -132,10 +169,33 @@
               '0%': { opacity:'0', transform: 'translate(-50%, -40%)' }, 
               '100%': { opacity:'1', transform: 'translate(-50%, -50%)' } 
             },
-            crystalCorePulse: { // For 3D crystal core
+            crystalCorePulse: { 
               '0%, 100%': { opacity: 0.7, transform: 'scale(1)' },
               '50%': { opacity: 1, transform: 'scale(1.1)' },
-            }
+            },
+            // New keyframes for title
+            'construct-char-anim': {
+              '0%': { opacity: '0', transform: 'scale(0.1) rotate(30deg)', color: '#00BFFF' },
+              '70%': { opacity: '1', transform: 'scale(1.15) rotate(-5deg)', color: '#00BFFF' },
+              '100%': { opacity: '1', transform: 'scale(1) rotate(0deg)', color: '#FFFFFF' },
+            },
+            'impact-flash-anim': {
+              '0%': { opacity: '0.7', boxShadow: '0 0 10px 5px white, 0 0 20px 10px white, 0 0 40px 20px rgba(255,255,255,0.7)' },
+              '50%': { opacity: '1', boxShadow: '0 0 20px 10px white, 0 0 40px 20px white, 0 0 80px 40px rgba(255,255,255,0.7)' },
+              '100%': { opacity: '0', boxShadow: 'none' },
+            },
+            'pulsing-blue-glow-anim': {
+              '0%, 100%': { 
+                textShadow: '0 0 2px #fff, 0 0 4px #00BFFF, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 16px #00BFFF' 
+              },
+              '50%': { 
+                textShadow: '0 0 3px #fff, 0 0 6px #00BFFF, 0 0 12px #00BFFF, 0 0 20px #00BFFF, 0 0 30px #00BFFF, 0 0 40px #00BFFF' 
+              },
+            },
+            'ember-fly-fade-anim': {
+              '0%': { opacity: '1', transform: 'translate(0, 0) scale(1)' },
+              '100%': { opacity: '0', transform: 'translate(var(--ember-tx, 0px), var(--ember-ty, 0px)) scale(0.3)' },
+            },
           },
           colors: {
             cyan: {
