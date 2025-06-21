@@ -5,8 +5,9 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { CalibrationModule as CalibrationModuleEnum } from '../types'; 
-import { LogoIcon, XCircleIcon } from './icons'; 
-import AuthenticationSigil from './AuthenticationSigil'; // New component
+import { LogoIcon } from './icons'; 
+import AuthenticationSigil from './AuthenticationSigil';
+import DocumentUploadModule from './DocumentUploadModule'; // New Module
 
 interface CalibrationSequenceProps {
   onClose: () => void;
@@ -32,14 +33,23 @@ const HUDText: React.FC<{ text: string; delay?: number, className?: string }> = 
 
 const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jumpToModule }) => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const composerRef = useRef<EffectComposer | null>(null);
+  const dataCometsRef = useRef<THREE.Points | null>(null);
+  const gridsRef = useRef<THREE.GridHelper[]>([]);
+  const clockRef = useRef(new THREE.Clock());
+  const mousePosRef = useRef({ x: 0, y: 0 });
 
   const [hudBooted, setHudBooted] = useState(false);
   const [currentLoadedModule, setCurrentLoadedModule] = useState<CalibrationModuleEnum | null>(null);
   const [syncProgress, setSyncProgress] = useState(0);
   const [currentObjectiveText, setCurrentObjectiveText] = useState("");
+  const [materializedObjects, setMaterializedObjects] = useState<THREE.Object3D[]>([]);
+  const animationFrameIdRef = useRef<number | null>(null);
 
 
-  // Three.js Scene Setup for Data Core
   useEffect(() => {
     if (!mountRef.current) return;
     const currentMount = mountRef.current;
@@ -47,19 +57,22 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log("CalibrationSequence: Initializing Data Core scene.");
 
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
     const camera = new THREE.PerspectiveCamera(60, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
     camera.position.set(0, 0, 0.1); 
+    cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x000000, 0); 
     currentMount.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
     const gridSize = 100;
     const gridDivisions = 10;
-    const grids: THREE.GridHelper[] = [];
-    const createGridPlane = (size: number, divisions: number, color1: any, color2: any) => {
+    const localGrids: THREE.GridHelper[] = [];
+    const createGridPlane = (size: number, divisions: number, color1: THREE.ColorRepresentation, color2: THREE.ColorRepresentation) => {
         const grid = new THREE.GridHelper(size, divisions, color1, color2);
         (grid.material as THREE.Material).opacity = 0.25;
         (grid.material as THREE.Material).transparent = true;
@@ -69,12 +82,13 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     }
 
     const wallDist = gridSize / 2;
-    const gridFront = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridFront.position.z = -wallDist; grids.push(gridFront); scene.add(gridFront);
-    const gridBack = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridBack.position.z = wallDist; gridBack.rotation.x = Math.PI; grids.push(gridBack); scene.add(gridBack);
-    const gridTop = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridTop.position.y = wallDist; gridTop.rotation.x = Math.PI / 2; grids.push(gridTop); scene.add(gridTop);
-    const gridBottom = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridBottom.position.y = -wallDist; gridBottom.rotation.x = -Math.PI / 2; grids.push(gridBottom); scene.add(gridBottom);
-    const gridLeft = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridLeft.position.x = -wallDist; gridLeft.rotation.y = Math.PI / 2; grids.push(gridLeft); scene.add(gridLeft);
-    const gridRight = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridRight.position.x = wallDist; gridRight.rotation.y = -Math.PI / 2; grids.push(gridRight); scene.add(gridRight);
+    const gridFront = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridFront.position.z = -wallDist; localGrids.push(gridFront); scene.add(gridFront);
+    const gridBack = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridBack.position.z = wallDist; gridBack.rotation.x = Math.PI; localGrids.push(gridBack); scene.add(gridBack);
+    const gridTop = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridTop.position.y = wallDist; gridTop.rotation.x = Math.PI / 2; localGrids.push(gridTop); scene.add(gridTop);
+    const gridBottom = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridBottom.position.y = -wallDist; gridBottom.rotation.x = -Math.PI / 2; localGrids.push(gridBottom); scene.add(gridBottom);
+    const gridLeft = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridLeft.position.x = -wallDist; gridLeft.rotation.y = Math.PI / 2; localGrids.push(gridLeft); scene.add(gridLeft);
+    const gridRight = createGridPlane(gridSize, gridDivisions, 0x0088ff, 0x00ffff); gridRight.position.x = wallDist; gridRight.rotation.y = -Math.PI / 2; localGrids.push(gridRight); scene.add(gridRight);
+    gridsRef.current = localGrids;
     
     const spaceMaterial = new THREE.MeshBasicMaterial({ color: 0x050510, side: THREE.BackSide });
     const spaceSphere = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 32), spaceMaterial);
@@ -96,6 +110,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     particleGeometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
     const particleMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
     const dataComets = new THREE.Points(particleGeometry, particleMaterial);
+    dataCometsRef.current = dataComets;
     scene.add(dataComets);
 
     const composer = new EffectComposer(renderer);
@@ -104,22 +119,23 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     composer.addPass(bloomPass);
     const outputPass = new OutputPass();
     composer.addPass(outputPass);
+    composerRef.current = composer;
     
-    const mousePosition = { x: 0, y: 0 };
     const handleMouseMove = (event: MouseEvent) => {
-      mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      mousePosRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mousePosRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     };
     window.addEventListener('mousemove', handleMouseMove);
 
-    let requestId: number;
     const animate = () => {
-      requestId = requestAnimationFrame(animate);
-      camera.rotation.y += (mousePosition.x * 0.1 - camera.rotation.y) * 0.05;
-      camera.rotation.x += (-mousePosition.y * 0.1 - camera.rotation.x) * 0.05;
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+      if(!cameraRef.current || !composerRef.current || !dataCometsRef.current) return;
 
-      const cometPositions = dataComets.geometry.attributes.position.array as Float32Array;
-      const cometVelocities = dataComets.geometry.attributes.velocity.array as Float32Array;
+      cameraRef.current.rotation.y += (mousePosRef.current.x * 0.1 - cameraRef.current.rotation.y) * 0.05;
+      cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.1 - cameraRef.current.rotation.x) * 0.05;
+
+      const cometPositions = dataCometsRef.current.geometry.attributes.position.array as Float32Array;
+      const cometVelocities = dataCometsRef.current.geometry.attributes.velocity.array as Float32Array;
       for (let i = 0; i < particleCount; i++) {
         cometPositions[i * 3 + 0] += cometVelocities[i * 3 + 0];
         cometPositions[i * 3 + 1] += cometVelocities[i * 3 + 1];
@@ -128,81 +144,147 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         if (Math.abs(cometPositions[i*3+1]) > gridSize * 0.75) cometVelocities[i*3+1] *= -1;
         if (Math.abs(cometPositions[i*3+2]) > gridSize * 0.75) cometVelocities[i*3+2] *= -1;
       }
-      dataComets.geometry.attributes.position.needsUpdate = true;
-      grids.forEach(g => g.rotation.y += 0.0001); 
-      composer.render();
+      dataCometsRef.current.geometry.attributes.position.needsUpdate = true;
+      gridsRef.current.forEach(g => g.rotation.y += 0.0001); 
+
+      materializedObjects.forEach(obj => {
+        obj.rotation.y += 0.005;
+        obj.rotation.x += 0.002;
+      });
+      
+      composerRef.current.render(clockRef.current.getDelta());
     };
     animate();
 
     const handleResize = () => {
-      camera.aspect = currentMount.clientWidth / currentMount.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
-      composer.setSize(currentMount.clientWidth, currentMount.clientHeight);
+      if (!cameraRef.current || !rendererRef.current || !composerRef.current || !mountRef.current) return;
+      cameraRef.current.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+      composerRef.current.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     };
     window.addEventListener('resize', handleResize);
 
-    // HUD Boot-up sequence & Initial Module Load
     setTimeout(() => {
       setHudBooted(true);
       console.log("AI Voice: Calibration sequence initiated. Welcome.");
-      setTimeout(() => {
-        setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
-        console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
-        setCurrentLoadedModule(CalibrationModuleEnum.Authentication);
-      }, 2500); // 2s pause + 0.5s for message
-    }, 500); // Delay after transition
+      // Jump logic or default start
+       const initialModule = jumpToModule ?? CalibrationModuleEnum.Authentication;
+        setCurrentLoadedModule(initialModule);
+
+        if (initialModule === CalibrationModuleEnum.Authentication) {
+            setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
+            console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
+        } else if (initialModule === CalibrationModuleEnum.DocumentUpload) {
+             // If jumping directly to DocumentUpload, set progress accordingly
+            setSyncProgress(15); 
+            setCurrentObjectiveText("CURRENT OBJECTIVE: Upload Primary Data-Construct");
+            console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
+        }
+        // Add more else if for other modules if direct jump is supported
+    }, 500);
 
     return () => {
-      cancelAnimationFrame(requestId);
+      if(animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
-      renderer.dispose();
-      scene.traverse(child => {
+      
+      if(rendererRef.current) rendererRef.current.dispose();
+      sceneRef.current?.traverse(child => {
         if (child instanceof THREE.Mesh || child instanceof THREE.Points || child instanceof THREE.GridHelper) {
           child.geometry.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach(material => material.dispose());
+          const material = (child as THREE.Mesh | THREE.Points | THREE.GridHelper).material;
+          if (Array.isArray(material)) {
+            material.forEach(mat => mat.dispose());
           } else {
-            (child.material as THREE.Material).dispose();
+            (material as THREE.Material).dispose();
           }
         }
       });
-      if (currentMount && renderer.domElement) {
-        currentMount.removeChild(renderer.domElement);
+      if (mountRef.current && rendererRef.current?.domElement) {
+        mountRef.current.removeChild(rendererRef.current.domElement);
       }
       console.log("CalibrationSequence: Data Core scene cleaned up.");
     };
-  }, []);
+  }, [jumpToModule, materializedObjects]); // Added materializedObjects to re-run effect if it changes (and scene, camera, renderer refs are stable)
+
+  // Module Progression Logic
+  useEffect(() => {
+    if (currentLoadedModule === CalibrationModuleEnum.DocumentUpload && syncProgress < 15) {
+        // This case implies direct jump or an issue. For now, assume auth was completed.
+        // If auth wasn't completed, syncProgress should be 0.
+        // This log helps catch unexpected states.
+        console.warn("DocumentUpload module loaded with syncProgress < 15%. Ensure Authentication module completed or handled jump correctly.");
+    }
+  }, [currentLoadedModule, syncProgress]);
+
 
   const handleAuthenticationSuccess = useCallback(() => {
     console.log("Authentication successful!");
     setSyncProgress(15);
     setCurrentObjectiveText("BIOMETRIC SIGNATURE VERIFIED");
-    console.log("AI Voice: Signature Verified. Module 01 complete."); // Placeholder for success chime + voice
-    setCurrentLoadedModule(null); // Or next module, e.g., CalibrationModuleEnum.DocumentUpload
-    // Potentially load next module after a delay
-    // setTimeout(() => setCurrentLoadedModule(CalibrationModuleEnum.DocumentUpload), 2000);
+    console.log("AI Voice: Signature Verified. Module 01 complete.");
+    setTimeout(() => {
+        setCurrentLoadedModule(CalibrationModuleEnum.DocumentUpload);
+        setCurrentObjectiveText("CURRENT OBJECTIVE: Upload Primary Data-Construct");
+        console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
+    }, 1500);
   }, []);
 
   const handleAuthenticationRetryPrompt = useCallback(() => {
     console.log("AI Voice: Re-calibrating. Please try again.");
   }, []);
 
+  const handleDocumentUploadSuccess = useCallback((newObject: THREE.Object3D) => {
+    console.log("Document Materialization successful!");
+    setMaterializedObjects(prev => [...prev, newObject]); // Add to scene
+    setSyncProgress(30);
+    setCurrentObjectiveText("DATA-CONSTRUCT MATERIALIZED");
+    console.log("AI Voice: Data-construct received and materialized.");
+    // Placeholder: Transition to next module (e.g., PinEncryption)
+    setTimeout(() => {
+        // setCurrentLoadedModule(CalibrationModuleEnum.PinEncryption);
+        // setCurrentObjectiveText("CURRENT OBJECTIVE: Set Quantum PIN");
+        // console.log("AI Voice: Module 03: Quantum PIN Encryption. Please proceed.");
+        setCurrentLoadedModule(null); // For now, end after module 2
+        setCurrentObjectiveText("CALIBRATION SEQUENCE: STAGE 2 COMPLETE");
+    }, 2000);
+  }, []);
+
+  const handleDocumentUploadFailure = useCallback(() => {
+    console.log("Document Materialization failed.");
+    // AI voice and HUD feedback are handled within DocumentUploadModule for this specific failure
+  }, []);
+
+
   const renderCurrentModuleContent = () => {
-    if (currentLoadedModule === CalibrationModuleEnum.Authentication) {
-      return (
-        <AuthenticationSigil 
-          onSuccess={handleAuthenticationSuccess} 
-          onRetryPrompt={handleAuthenticationRetryPrompt} 
-        />
-      );
+    if (!sceneRef.current || !cameraRef.current || !rendererRef.current) {
+        return <div className="text-cyan-400 text-center p-8">Initializing Data Core Interface...</div>;
     }
-    // Placeholder for other modules or an empty state
-    // if (currentLoadedModule === CalibrationModuleEnum.DocumentUpload) {
-    // return <DocumentUploadModule onSuccess={() => { ... }} />;
-    // }
-    return null; 
+
+    switch (currentLoadedModule) {
+      case CalibrationModuleEnum.Authentication:
+        return (
+          <AuthenticationSigil 
+            onSuccess={handleAuthenticationSuccess} 
+            onRetryPrompt={handleAuthenticationRetryPrompt} 
+          />
+        );
+      case CalibrationModuleEnum.DocumentUpload:
+        return (
+          <DocumentUploadModule
+            scene={sceneRef.current}
+            camera={cameraRef.current}
+            renderer={rendererRef.current}
+            onSuccess={handleDocumentUploadSuccess}
+            onFailure={handleDocumentUploadFailure}
+          />
+        );
+      // case CalibrationModuleEnum.PinEncryption:
+        // return <PinEncryptionModule ... />
+      default:
+        return null; 
+    }
   };
 
 
@@ -210,7 +292,6 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     <div className="fixed inset-0 z-40 animate-fadeIn"> 
       <div ref={mountRef} className="absolute inset-0 z-0"></div>
 
-      {/* HUD Elements */}
       <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
         <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
         <HUDText text="STATUS: ONLINE" delay={0.3} />
@@ -235,12 +316,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         )}
       </div>
       
-      {/* Container for the current interactive module */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        {/* The module itself will handle pointer events if needed */}
         {renderCurrentModuleContent()}
       </div>
-
 
        <button onClick={onClose} className="absolute bottom-4 right-4 text-cyan-300 hover:text-white transition-colors z-50 font-roboto-mono p-2 border border-cyan-500/50 hover:border-cyan-400 rounded text-sm animate-fadeIn" style={{animationDelay: '2s'}}>
           [ EXIT CALIBRATION ]
