@@ -26,11 +26,13 @@ export interface KeyPoint { // Used by the old DataStreamMap and potentially oth
 export interface StreamNodeData { // For the new DataStreamMap3D
   id: string;
   title: string;
+  moduleShortName: string; // For concise display on holo-panel
   description: string;
   position: THREE.Vector3;
   size: number;
   moduleTarget?: CalibrationModule;
   connectedTo?: string[]; // IDs of other nodes it's connected to by lines
+  holovidId: string; // Identifier for which holovid animation to play
 }
 
 export interface ParticleStyle {
