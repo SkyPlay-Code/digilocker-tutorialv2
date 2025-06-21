@@ -6,7 +6,7 @@ import DataStreamMap3D from './components/DataStreamMap3D'; // Updated import
 import ShareSection from './components/ShareSection';
 import ArchivesSection from './components/ArchivesSection';
 import Footer from './components/Footer';
-import SignalLostScreen from './components/SignalLostScreen'; // New import
+import FinalTestamentScreen from './components/FinalTestamentScreen'; // New import
 import { AppView, CalibrationModule } from './types';
 
 const App: React.FC = () => {
@@ -15,7 +15,7 @@ const App: React.FC = () => {
   
   const [isTransitioningToCalibration, setIsTransitioningToCalibration] = useState(false);
   const [showTransitionFlash, setShowTransitionFlash] = useState(false);
-  const [signalLostDismissed, setSignalLostDismissed] = useState(false); // New state
+  const [monumentDismissed, setMonumentDismissed] = useState(false); 
 
   const dataStreamMapRef = useRef<HTMLElement>(null);
   const archivesRef = useRef<HTMLElement>(null); 
@@ -53,18 +53,18 @@ const App: React.FC = () => {
   }, []);
 
   const handleAccessArchive = useCallback(() => {
-    setSignalLostDismissed(true);
+    setMonumentDismissed(true);
   }, []);
   
   useEffect(() => {
-    if(currentView === AppView.Hero && signalLostDismissed) {
+    if(currentView === AppView.Hero && monumentDismissed) {
        // Potentially reset scroll or other states if needed when returning to Hero
     }
-  }, [currentView, signalLostDismissed]);
+  }, [currentView, monumentDismissed]);
 
 
-  if (!signalLostDismissed) {
-    return <SignalLostScreen onAccessArchive={handleAccessArchive} />;
+  if (!monumentDismissed) {
+    return <FinalTestamentScreen onAccessArchive={handleAccessArchive} />;
   }
 
   return (

@@ -8,7 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Exo+2:wght@400;700&family=Roboto+Mono:wght@400;700&family=Raleway:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Orbitron', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -16,7 +16,7 @@
     }
 
     /* Glow effects */
-    .text-glow-cyan { /* Existing glow, might be used elsewhere */
+    .text-glow-cyan { 
       color: #a5f3fc; 
       text-shadow: 0 0 3px rgba(6,182,212,0.7), 0 0 5px rgba(6,182,212,0.5), 0 0 10px rgba(6,182,212,0.3);
     }
@@ -28,12 +28,12 @@
       color: #f0abfc;
       text-shadow: 0 0 3px rgba(217,70,239,0.7), 0 0 5px rgba(217,70,239,0.5), 0 0 10px rgba(217,70,239,0.3);
     }
-    .text-glow-green { /* Added for success messages */
-      color: #6ee7b7; /* Tailwind green-300 */
+    .text-glow-green { 
+      color: #6ee7b7;
       text-shadow: 0 0 5px rgba(16,185,129,0.7), 0 0 10px rgba(16,185,129,0.5), 0 0 15px rgba(16,185,129,0.3);
     }
-    .text-glow-red { /* Added for error messages */
-      color: #f87171; /* Tailwind red-400 */
+    .text-glow-red { 
+      color: #f87171;
       text-shadow: 0 0 5px rgba(239,68,68,0.7), 0 0 10px rgba(239,68,68,0.5), 0 0 15px rgba(239,68,68,0.3);
     }
 
@@ -47,8 +47,7 @@
       box-shadow: 0 0 8px rgba(37,99,235,0.6), 0 0 15px rgba(37,99,235,0.4), inset 0 0 3px rgba(37,99,235,0.5);
     }
 
-    /* Glitch effect for copyright */
-    .glitch-copyright {
+    .glitch-copyright { /* Kept for footer */
       position: relative;
       color: #8B5CF6; 
     }
@@ -76,220 +75,136 @@
       animation: glitch-anim-2 2.5s infinite linear alternate-reverse;
     }
 
-    @keyframes glitch-anim-1 {
-      0% { clip-path: polygon(0 20%, 100% 20%, 100% 25%, 0 25%); }
-      25% { clip-path: polygon(0 40%, 100% 40%, 100% 48%, 0 48%); }
-      50% { clip-path: polygon(0 65%, 100% 65%, 100% 70%, 0 70%); }
-      75% { clip-path: polygon(0 80%, 100% 80%, 100% 83%, 0 83%); }
-      100% { clip-path: polygon(0 33%, 100% 33%, 100% 38%, 0 38%); }
+    @keyframes glitch-anim-1 { /* Kept for footer */
+      0% { clip-path: polygon(0 20%, 100% 20%, 100% 25%, 0 25%); } 25% { clip-path: polygon(0 40%, 100% 40%, 100% 48%, 0 48%); } 50% { clip-path: polygon(0 65%, 100% 65%, 100% 70%, 0 70%); } 75% { clip-path: polygon(0 80%, 100% 80%, 100% 83%, 0 83%); } 100% { clip-path: polygon(0 33%, 100% 33%, 100% 38%, 0 38%); }
     }
-    @keyframes glitch-anim-2 {
-      0% { clip-path: polygon(0 5%, 100% 5%, 100% 10%, 0 10%); }
-      25% { clip-path: polygon(0 50%, 100% 50%, 100% 57%, 0 57%); }
-      50% { clip-path: polygon(0 22%, 100% 22%, 100% 30%, 0 30%); }
-      75% { clip-path: polygon(0 88%, 100% 88%, 100% 92%, 0 92%); }
-      100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
+    @keyframes glitch-anim-2 { /* Kept for footer */
+      0% { clip-path: polygon(0 5%, 100% 5%, 100% 10%, 0 10%); } 25% { clip-path: polygon(0 50%, 100% 50%, 100% 57%, 0 57%); } 50% { clip-path: polygon(0 22%, 100% 22%, 100% 30%, 0 30%); } 75% { clip-path: polygon(0 88%, 100% 88%, 100% 92%, 0 92%); } 100% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
     }
     
-    .font-exo2-bold {
-      font-family: 'Exo 2', sans-serif;
-      font-weight: 700;
-    }
-    .font-exo2-regular {
-      font-family: 'Exo 2', sans-serif;
-      font-weight: 400;
-    }
-    .font-roboto-mono {
-      font-family: 'Roboto Mono', monospace;
-    }
+    .font-exo2-bold { font-family: 'Exo 2', sans-serif; font-weight: 700; }
+    .font-exo2-regular { font-family: 'Exo 2', sans-serif; font-weight: 400; }
+    .font-roboto-mono { font-family: 'Roboto Mono', monospace; }
+    .font-raleway { font-family: 'Raleway', sans-serif; }
 
-    .title-char-construct {
-      display: inline-block; /* Required for transform */
-      opacity: 0;
-      animation-fill-mode: forwards;
-      color: #00BFFF; /* Start as blue, transition to white */
-    }
-    
-    .title-impact-flash-container {
-      position: relative; /* For pseudo-element flash */
-    }
-    
-    /* Apply flash to H1 directly via animation */
-    .title-impact-flash-container h1.animate-impact-flash::after {
-      content: '';
-      position: absolute;
-      top: -20%; left: -20%; /* Expand flash area */
-      right: -20%; bottom: -20%;
-      background-color: white;
-      opacity: 0;
-      pointer-events: none;
-      animation: impact-flash-pseudo-anim 0.25s ease-out forwards; /* Separate animation for pseudo */
-      animation-delay: inherit; /* Inherit delay from parent (H1) */
-    }
-    
-    .title-final-appearance {
-      color: #FFFFFF; /* Solid white text */
-      /* Pulsing blue inner glow applied by pulsing-blue-glow-anim */
-      animation: pulsing-blue-glow-anim 2s infinite ease-in-out;
-    }
+    /* HeroSection Animations - Kept */
+    .title-char-construct { display: inline-block; opacity: 0; animation-fill-mode: forwards; color: #00BFFF; }
+    .title-impact-flash-container { position: relative; }
+    .title-impact-flash-container h1.animate-impact-flash::after { content: ''; position: absolute; top: -20%; left: -20%; right: -20%; bottom: -20%; background-color: white; opacity: 0; pointer-events: none; animation: impact-flash-pseudo-anim 0.25s ease-out forwards; animation-delay: inherit; }
+    .title-final-appearance { color: #FFFFFF; animation: pulsing-blue-glow-anim 2s infinite ease-in-out; }
+    .ember-particle { position: absolute; border-radius: 50%; background-color: #00BFFF; box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; pointer-events: none; animation-fill-mode: forwards; }
+    .data-stream-button-shimmer::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%); transform: skewX(-25deg); }
+    .data-stream-star-chart { position: absolute; inset: 0; width: 300%; height: 100%; background-image: radial-gradient(circle at 20% 50%, rgba(0, 100, 150, 0.1) 0%, transparent 30%), radial-gradient(circle at 80% 70%, rgba(50, 0, 100, 0.05) 0%, transparent 25%); }
+    .calibration-orb-text { font-size: clamp(0.4rem, calc(8vw * 0.1), 0.65rem); line-height: 1.1; }
+     @media (min-width: 768px) { .calibration-orb-text { font-size: clamp(0.5rem, calc(8vw * 0.11), 0.75rem); } }
+    .hud-char-flicker { display: inline-block; opacity: 0; animation: hud-text-flicker-char-anim 0.5s forwards; }
+    .sigil-line-draw { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: sigil-draw-line-anim 1s ease-out forwards; }
+    .sigil-node-materialize { animation: sigil-node-fade-in-anim 0.5s ease-out forwards; }
+    .sigil-node-idle { animation: sigil-node-idle-pulse-anim 2s infinite ease-in-out; }
+    .sigil-node-target { animation: sigil-node-target-pulse-anim 1s infinite ease-in-out; }
+    .sigil-timer-path { stroke-dasharray: 283; stroke-dashoffset: 0; }
+    .particle-inflow-source { position: absolute; width: 2px; height: 2px; background-color: #00ffff; border-radius: 50%; opacity: 0; animation: particle-inflow-anim var(--particle-duration, 1s) linear var(--particle-delay, 0s) forwards; box-shadow: 0 0 3px #00ffff, 0 0 5px #00ffff; }
+    @keyframes particle-inflow-anim { 0% { transform: translate(var(--particle-start-x), var(--particle-start-y)) scale(1); opacity: 0.8; } 80% { opacity: 1; } 100% { transform: translate(var(--particle-end-x), var(--particle-end-y)) scale(0.2); opacity: 0; } }
+    @keyframes draw-line { to { stroke-dashoffset: 0; } } /* For FractalTimeline */
+    @keyframes pulse-node { 0%, 100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.1); opacity: 1; } } /* For FractalTimeline */
+    .animate-fadeIn { animation: fadeInAnim 0.5s ease-out forwards; }
+    @keyframes fadeInAnim { from { opacity: 0; } to { opacity: 1; } }
 
-    .ember-particle {
+    /* Final Testament Screen Styles */
+    .final-testament-container {
+      /* Placeholder for actual nebula image. Use a very dark gradient. */
+      background: radial-gradient(ellipse at center, #0c0d1f 0%, #03030a 70%, #000000 100%);
+      /* background-image: url('path/to/your/high_res_nebula.jpg'); */
+      background-size: cover;
+      background-position: center;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0; /* Starts hidden, JS will fade it in */
+      transition: opacity 1s ease-in-out;
+    }
+    .dust-particle {
       position: absolute;
+      background-color: rgba(255, 255, 255, 0.3); /* Dim white */
       border-radius: 50%;
-      background-color: #00BFFF; /* Electric blue */
-      box-shadow: 0 0 3px #00BFFF, 0 0 6px #00FFFF; /* Blue with cyan corona */
       pointer-events: none;
-      animation-fill-mode: forwards;
+      animation: drift-fade infinite ease-in-out;
+    }
+    @keyframes drift-fade {
+      0% { opacity: 0; transform: translateY(-20px) translateX(0px); }
+      20% { opacity: 0.2; } /* Fade in */
+      80% { opacity: 0.15; } /* Fade out */
+      100% { opacity: 0; transform: translateY(100vh) translateX(var(--drift-x-end)); }
     }
 
-    /* For Data Stream Button */
-    .data-stream-button-shimmer::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%; /* Start off-screen to the left */
-        width: 50%; /* Width of the shimmer */
-        height: 100%;
-        background: linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.4) 50%, /* Brighter, more defined shimmer */
-            rgba(255, 255, 255, 0) 100%
-        );
-        transform: skewX(-25deg); /* Angle of the shimmer */
-        /* animation applied by Tailwind class: animate-data-stream-shimmer */
+    .crystalline-heart-container {
+      width: 200px; /* Adjust as needed */
+      height: 200px;
+      position: relative;
+      margin-bottom: 2rem;
     }
-    .data-stream-star-chart {
-        position: absolute;
-        inset: 0;
-        width: 300%; /* Make star chart wider than button for panning */
-        height: 100%;
-        /* animation applied by Tailwind class: animate-data-stream-starchart-pan */
-        background-image: radial-gradient(circle at 20% 50%, rgba(0, 100, 150, 0.1) 0%, transparent 30%), /* Fainter nebula */
-                          radial-gradient(circle at 80% 70%, rgba(50, 0, 100, 0.05) 0%, transparent 25%); /* Fainter nebula */
+    .crystalline-heart-svg {
+      width: 100%;
+      height: 100%;
     }
-    
-    /* Initiate Calibration Orb Text Size */
-    .calibration-orb-text {
-        font-size: clamp(0.4rem, calc(8vw * 0.1), 0.65rem); /* Responsive font size for two lines */
-        line-height: 1.1;
+    .heart-core-light { /* For SVG <circle class="heart-core-light"> */
+      animation: heart-pulse-anim 5s infinite ease-in-out;
     }
-     @media (min-width: 768px) { /* Larger screens if needed */
-        .calibration-orb-text {
-            font-size: clamp(0.5rem, calc(8vw * 0.11), 0.75rem); /* Slightly larger on md+ */
-        }
+    @keyframes heart-pulse-anim {
+      0%, 100% { opacity: 0.7; filter: blur(3px); r: 5; }
+      50% { opacity: 1; filter: blur(5px); r: 6; }
+    }
+    .heart-pulse-faster .heart-core-light {
+        animation-duration: 1.5s !important;
     }
 
-    /* Individual character flicker for HUD */
-    .hud-char-flicker {
-      display: inline-block;
-      opacity: 0;
-      animation: hud-text-flicker-char-anim 0.5s forwards;
-    }
-
-    /* Styles for AuthenticationSigil */
-    .sigil-line-draw {
-        stroke-dasharray: 1000; /* A large enough value to cover any line length */
-        stroke-dashoffset: 1000;
-        animation: sigil-draw-line-anim 1s ease-out forwards;
-    }
-    .sigil-node-materialize {
-        animation: sigil-node-fade-in-anim 0.5s ease-out forwards;
-    }
-    .sigil-node-idle {
-        animation: sigil-node-idle-pulse-anim 2s infinite ease-in-out;
-    }
-    .sigil-node-target {
-        animation: sigil-node-target-pulse-anim 1s infinite ease-in-out;
-    }
-    .sigil-timer-path {
-      stroke-dasharray: 283; /* 2 * PI * 45 (radius of timer circle) */
-      stroke-dashoffset: 0; /* Starts full */
-      /* animation will be controlled by style prop for stroke-dashoffset */
-    }
-
-    /* Particle Inflow for DocumentUploadModule */
-    .particle-inflow-source {
+    .memory-mote {
       position: absolute;
-      width: 2px;
-      height: 2px;
-      background-color: #00ffff; /* Cyan */
+      background-color: #00BFFF; /* Cyan like heart's core */
       border-radius: 50%;
+      box-shadow: 0 0 5px #00BFFF, 0 0 10px #00FFFF;
+      pointer-events: none;
+      /* Animation will be JS driven for start pos & fade */
+    }
+
+    .final-message-container {
+      text-align: center;
+      font-family: 'Raleway', sans-serif;
+      color: white;
+      max-width: 600px;
+    }
+    .final-message-word {
       opacity: 0;
-      animation: particle-inflow-anim var(--particle-duration, 1s) linear var(--particle-delay, 0s) forwards;
-      box-shadow: 0 0 3px #00ffff, 0 0 5px #00ffff;
+      display: inline-block; /* Allows for individual transform if needed */
+      transition: opacity 0.8s ease-in-out;
+      margin-right: 0.25em; /* Space between words */
+      text-shadow: 0 0 3px rgba(0, 191, 255, 0.3), 0 0 5px rgba(0, 191, 255, 0.2);
+    }
+    .final-message-word.visible {
+      opacity: 1;
     }
 
-    @keyframes particle-inflow-anim {
-      0% {
-        transform: translate(var(--particle-start-x), var(--particle-start-y)) scale(1);
-        opacity: 0.8;
-      }
-      80% {
-         opacity: 1;
-      }
-      100% {
-        transform: translate(var(--particle-end-x), var(--particle-end-y)) scale(0.2);
-        opacity: 0;
-      }
+    .enter-echo-link {
+      font-family: 'Raleway', sans-serif;
+      color: #a5f3fc; /* Lighter cyan */
+      text-decoration: none;
+      margin-top: 2rem;
+      font-size: 1.1rem;
+      letter-spacing: 0.05em;
+      opacity: 0; /* JS will fade in */
+      transition: opacity 1s ease-in-out 1s, color 0.3s ease, text-shadow 0.3s ease; /* Delay opacity for after message */
     }
-
-    /* Fractal Timeline Animations */
-    @keyframes draw-line {
-      to {
-        stroke-dashoffset: 0;
-      }
+    .enter-echo-link:hover {
+      color: #ffffff;
+      text-shadow: 0 0 5px #00BFFF, 0 0 10px #00BFFF;
     }
-    @keyframes pulse-node {
-      0%, 100% { transform: scale(1); opacity: 0.9; }
-      50% { transform: scale(1.1); opacity: 1; }
+    .enter-echo-link.visible {
+      opacity: 1;
     }
-    .animate-fadeIn { /* This class is used in FractalTimeline and other places if needed */
-      animation: fadeInAnim 0.5s ease-out forwards;
-    }
-    @keyframes fadeInAnim { /* General purpose fade in */
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    /* SignalLostScreen Animations (v17 - some may be superseded by 3D/Canvas implementation) */
-    @keyframes terminalScanlineAnim { /* For 2D overlay if used, 3D terminal uses shader */
-      0% { background-position: 0 0; }
-      100% { background-position: 0 100%; } /* Adjust 100% for scanline height for seamless loop */
-    }
-    
-    /* This specific glitch animation might be replaced by JS character swapping for v18 */
-    @keyframes terminalCharGlitchAnim {
-      0%, 100% { opacity: 1; transform: translate(0,0) skewX(0); color: #67e8f9; /* cyan-300 */ }
-      25% { opacity: 0.7; transform: translate(-1px, 1px) skewX(-5deg); color: #f472b6; /* pink-400 */ }
-      50% { opacity: 1; transform: translate(1px, -1px) skewX(5deg); color: #67e8f9; }
-      75% { opacity: 0.8; transform: translate(0.5px, 0.5px) skewX(2deg); color: #a5f3fc; /* cyan-200 */ }
-    }
-    /* This will be the main pulse for the canvas-rendered button if it needs a CSS container glow */
-    @keyframes holographic-button-pulse-anim {
-      0%, 100% { 
-        filter: drop-shadow(0 0 4px rgba(0,220,255,0.7)) drop-shadow(0 0 8px rgba(0,220,255,0.5));
-        transform: scale(1);
-      }
-      50% { 
-        filter: drop-shadow(0 0 7px rgba(0,255,255,0.9)) drop-shadow(0 0 15px rgba(0,255,255,0.7));
-        transform: scale(1.02);
-      }
-    }
-     /* Old accessButtonPulseAnim - might be superseded by holographic-button-pulse-anim or canvas effects */
-    @keyframes accessButtonPulseAnim {
-      0%, 100% { 
-        box-shadow: 0 0 8px rgba(6,182,212,0.6), 0 0 15px rgba(6,182,212,0.4), inset 0 0 3px rgba(6,182,212,0.5), 0 0 2px rgba(255,255,255,0.3);
-        border-color: rgba(6,182,212,0.7);
-        transform: scale(1);
-      }
-      50% { 
-        box-shadow: 0 0 12px rgba(6,182,212,0.8), 0 0 25px rgba(6,182,212,0.6), inset 0 0 5px rgba(6,182,212,0.7), 0 0 5px rgba(255,255,255,0.5);
-        border-color: rgba(6,182,212,1);
-        transform: scale(1.02);
-      }
-    }
-
   </style>
   <script>
     tailwind.config = {
@@ -299,12 +214,13 @@
             orbitron: ['Orbitron', 'sans-serif'],
             exo2: ['Exo 2', 'sans-serif'],
             'roboto-mono': ['Roboto Mono', 'monospace'],
+            raleway: ['Raleway', 'sans-serif'],
           },
           animation: {
             'spark': 'spark 0.5s ease-out forwards',
             'typewriter': 'typewriter 1s steps(40,end) forwards',
             'beam': 'beam 2s ease-out forwards',
-            'fadeIn': 'fadeInAnim 0.5s ease-out', /* Changed to use consistent naming */
+            'fadeIn': 'fadeInAnim 0.5s ease-out',
             'slideUp': 'slideUp 0.5s ease-out',
             'crystal-core-pulse': 'crystalCorePulse 4s infinite ease-in-out', 
             'crystal-core-pulse-fast': 'crystalCorePulse 1.5s infinite ease-in-out', 
@@ -312,285 +228,76 @@
             'impact-flash': 'impact-flash-anim 0.25s ease-out forwards', 
             'pulsing-blue-glow': 'pulsing-blue-glow-anim 2s infinite ease-in-out',
             'ember-fly-fade': 'ember-fly-fade-anim 3.5s linear forwards', 
-            // Orb Animations
             'orb-deep-thrum-glow': 'orb-deep-thrum-glow-anim 3s infinite ease-in-out',
             'orb-deep-thrum-core-scale': 'orb-deep-thrum-core-scale-anim 3s infinite ease-in-out',
             'orb-deep-thrum-core-opacity': 'orb-deep-thrum-core-opacity-anim 3s infinite ease-in-out',
-            'orb-unstable-flicker': 'orb-unstable-flicker-anim 0.7s infinite linear', // Applied to main orb for glow
-            'orb-vibrate': 'orb-vibrate-anim 0.1s infinite linear alternate', // Applied to main orb
-            'orb-flash-expand': 'orb-flash-expand-anim 0.4s ease-out forwards', // For the dedicated flash element
-            // Data Stream Button Animations
+            'orb-unstable-flicker': 'orb-unstable-flicker-anim 0.7s infinite linear',
+            'orb-vibrate': 'orb-vibrate-anim 0.1s infinite linear alternate',
+            'orb-flash-expand': 'orb-flash-expand-anim 0.4s ease-out forwards',
             'data-stream-shimmer': 'data-stream-shimmer-anim 4s infinite linear',
             'data-stream-starchart-pan': 'data-stream-starchart-pan-anim 20s linear infinite',
-            // Transition & HUD Animations
             'screen-flash-white': 'screen-flash-white-anim 0.3s ease-out forwards',
             'hud-line-draw-x': 'hud-line-draw-x-anim 0.5s ease-out forwards',
             'hud-line-draw-y': 'hud-line-draw-y-anim 0.5s ease-out forwards',
-            'hud-text-flicker-char': 'hud-text-flicker-char-anim 0.5s forwards', // Applied per character
+            'hud-text-flicker-char': 'hud-text-flicker-char-anim 0.5s forwards',
             'video-player-expand-y': 'video-player-expand-y-anim 0.5s ease-out forwards',
             'video-player-border-pulse': 'video-player-border-pulse-anim 2s infinite ease-in-out',
-            // Sigil Animations
             'sigil-draw-line': 'sigil-draw-line-anim 1s ease-out forwards',
-            'sigil-node-fade-in': 'sigil-node-fade-in-anim 0.5s ease-out forwards .2s', /* delay after line */
+            'sigil-node-fade-in': 'sigil-node-fade-in-anim 0.5s ease-out forwards .2s',
             'sigil-node-idle-pulse': 'sigil-node-idle-pulse-anim 2s infinite ease-in-out',
             'sigil-node-target-pulse': 'sigil-node-target-pulse-anim 1s infinite ease-in-out',
-            // 'sigil-timer-countdown': 'sigil-timer-countdown-path-anim 7s linear forwards', /* Will be dynamic */
             'sigil-success-flash': 'sigil-success-flash-overall-anim 0.5s ease-out',
             'sigil-failure-flash': 'sigil-failure-flash-overall-anim 0.3s ease-out',
             'sigil-glitch': 'sigil-glitch-effect-anim 0.5s linear infinite',
             'sigil-feedback-text': 'sigil-feedback-text-materialize-anim 0.5s ease-out forwards',
-            'sigil-dissolve': 'fadeInAnim 0.5s ease-out reverse forwards', /* Using fadeInAnim reversed for dissolve */
-            // Document Upload Module Animations
+            'sigil-dissolve': 'fadeInAnim 0.5s ease-out reverse forwards',
             'icon-glitch': 'icon-glitch-anim 0.5s linear infinite alternate',
             'icon-compress': 'icon-compress-anim 0.7s ease-in forwards',
             'ui-shockwave-pulse': 'ui-shockwave-pulse-anim 0.6s ease-out forwards',
-            // Signal Lost Screen Animations (v18 - some classes might be unused by new 3D component)
-            'terminal-scanline': 'terminalScanlineAnim 2s linear infinite', 
-            'terminal-char-glitch-old': 'terminalCharGlitchAnim 0.15s linear', // Old, specific CSS glitch
-            'holographic-button-pulse': 'holographic-button-pulse-anim 2.5s infinite ease-in-out', // For new button
-            'access-button-pulse-old': 'accessButtonPulseAnim 2.5s infinite ease-in-out', // Old button pulse
           },
           keyframes: {
-            spark: {
-              '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
-              '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' },
-            },
-            typewriter: { /* This is a very basic typewriter. SignalLostScreen will use JS. */
-                from: { width: '0' },
-                to: { width: '100%' }
-            },
-            beam: {
-              '0%': { height: '0', opacity: '0' },
-              '50%': { height: '128px', opacity: '1' },
-              '100%': { height: '128px', opacity: '0', transform: 'translate(-50%, -100%) scaleY(1.5)' }
-            },
-            fadeInAnim: { /* Global fadeInAnim */
-              '0%': { opacity:'0', transform: 'scale(0.95)' }, 
-              '100%': { opacity:'1', transform: 'scale(1)' } 
-            },
-            slideUp: { 
-              '0%': { opacity:'0', transform: 'translate(-50%, -40%)' }, 
-              '100%': { opacity:'1', transform: 'translate(-50%, -50%)' } 
-            },
-            crystalCorePulse: { 
-              '0%, 100%': { opacity: 0.6, transform: 'scale(1)' },
-              '50%': { opacity: 1, transform: 'scale(1.15)' }, 
-            },
-             'construct-char-anim': { 
-              '0%': { opacity: '0', transform: 'translateY(20px) scale(0.3) rotateX(90deg) rotateY(20deg)', color: '#00BFFF' },
-              '20%': { opacity: '0.3', transform: 'translateY(10px) scale(0.7) rotateX(45deg) rotateY(10deg)', color: '#00BFFF' },
-              '60%': { opacity: '1', transform: 'translateY(-5px) scale(1.2) rotateX(-10deg) rotateY(-5deg)', color: '#87CEFA' }, 
-              '100%': { opacity: '1', transform: 'translateY(0) scale(1) rotateX(0deg) rotateY(0deg)', color: '#FFFFFF' },
-            },
-            'impact-flash-anim': { 
-              '0%': { opacity: '1', filter: 'brightness(1)'},
-              '50%': { opacity: '0.8', filter: 'brightness(300%) drop-shadow(0 0 10px white)' }, 
-              '100%': { opacity: '1', filter: 'brightness(1)' },
-            },
-            'impact-flash-pseudo-anim': { 
-              '0%': { opacity: '0.7' },
-              '50%': { opacity: '1' },
-              '100%': { opacity: '0'},
-            },
-            'pulsing-blue-glow-anim': {
-              '0%, 100%': { 
-                textShadow: '0 0 4px #fff, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 18px #00BFFF, 0 0 24px #00BFFF, 0 0 30px #00BFFF' 
-              },
-              '50%': { 
-                textShadow: '0 0 6px #fff, 0 0 10px #00BFFF, 0 0 16px #00BFFF, 0 0 24px #00BFFF, 0 0 32px #00BFFF, 0 0 45px #00BFFF, 0 0 60px #00BFFF' 
-              },
-            },
-            'ember-fly-fade-anim': {
-              '0%': { opacity: '1', transform: 'translate(var(--ember-start-x, 0px), var(--ember-start-y, 0px)) scale(1)' },
-              '100%': { opacity: '0', transform: 'translate(var(--ember-end-x, 0px), var(--ember-end-y, 0px)) scale(0.2)' },
-            },
-             // Orb Keyframes
-            'orb-deep-thrum-glow-anim': {
-                '0%, 100%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px #00BFFF) brightness(1.0)' },
-                '50%': { filter: 'drop-shadow(0 0 18px #00BFFF) drop-shadow(0 0 30px #00BFFF) brightness(1.2)' },
-            },
-            'orb-deep-thrum-core-scale-anim': {
-                '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' },
-                '50%': { transform: 'translate(-50%, -50%) scale(1.1)' },
-            },
-            'orb-deep-thrum-core-opacity-anim': { // Example: if core has an overlay that pulses opacity
-                '0%, 100%': { opacity: 0.8 },
-                '50%': { opacity: 1 },
-            },
-            'orb-unstable-flicker-anim': { // Applied to main orb for glow destabilization
-                '0%, 100%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 18px #00BFFF) brightness(0.95)' },
-                '20%': { filter: 'drop-shadow(0 0 15px #00FFFF) drop-shadow(0 0 25px #00FFFF) brightness(1.25)' },
-                '40%': { filter: 'drop-shadow(0 0 8px #00BFFF) drop-shadow(0 0 16px #00BFFF) brightness(0.85)' },
-                '60%': { filter: 'drop-shadow(0 0 18px #00FFFF) drop-shadow(0 0 30px #00FFFF) brightness(1.35)' },
-                '80%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px #00BFFF) brightness(0.90)' },
-            },
-            'orb-vibrate-anim': { 
-                '0%': { transform: 'translate(0px, 0px)' }, /* Base scale is handled by button, not animation */
-                '25%': { transform: 'translate(0.5px, -0.5px)' },
-                '50%': { transform: 'translate(-0.5px, 0.5px)' },
-                '75%': { transform: 'translate(0.25px, 0.25px)' },
-                '100%': { transform: 'translate(0px, 0px)' },
-            },
-            'orb-flash-expand-anim': { // For the dedicated flash element
-                 '0%': { transform: 'translate(-50%, -50%) scale(0)', opacity: 0, backgroundColor: 'white' },
-                 '20%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, backgroundColor: 'white' }, /* Flash appears at core size */
-                 '100%': { transform: 'translate(-50%, -50%) scale(50)', opacity: 0, backgroundColor: 'white' }, /* Expands massively */
-            },
-            'data-stream-shimmer-anim': { 
-                '0%': { transform: 'translateX(-150%) skewX(-25deg)' }, 
-                '100%': { transform: 'translateX(150%) skewX(-25deg)' }, 
-            },
-            'data-stream-starchart-pan-anim': { 
-                '0%': { transform: 'translateX(0%)' },
-                '100%': { transform: 'translateX(-66.666%)' }, 
-            },
-            // New Keyframes for Transition & HUD
-            'screen-flash-white-anim': {
-              '0%': { opacity: '0' },
-              '50%': { opacity: '1' },
-              '100%': { opacity: '0' },
-            },
-            'hud-line-draw-x-anim': {
-              'from': { width: '0%', opacity: '0' },
-              'to': { width: '100%', opacity: '1' },
-            },
-            'hud-line-draw-y-anim': {
-              'from': { height: '0%', opacity: '0' },
-              'to': { height: '100%', opacity: '1' },
-            },
-            'hud-text-flicker-char-anim': { // Animation for each character
-              '0%': { opacity: '0', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' },
-              '20%': { opacity: '1', textShadow: '0 0 2px #00FFFF, 0 0 5px #00FFFF' },
-              '30%': { opacity: '0.3' },
-              '40%': { opacity: '1', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' },
-              '60%': { opacity: '0.5' },
-              '70%': { opacity: '1' },
-              '100%': { opacity: '1', textShadow: '0 0 3px rgba(0,255,255,0.7), 0 0 5px rgba(0,255,255,0.5)'},
-            },
-            'video-player-expand-y-anim': {
-              'from': { transform: 'scaleY(0)', opacity: '0' },
-              'to': { transform: 'scaleY(1)', opacity: '1' },
-            },
-            'video-player-border-pulse-anim': {
-              '0%, 100%': { borderColor: 'rgba(0, 255, 255, 0.7)', boxShadow: '0 0 8px rgba(0,255,255,0.5)' },
-              '50%': { borderColor: 'rgba(0, 255, 255, 1)', boxShadow: '0 0 15px rgba(0,255,255,0.8)' },
-            },
-            // Sigil Keyframes
-            'sigil-draw-line-anim': {
-                'from': { strokeDashoffset: 'var(--line-length, 1000)', opacity: 0 },
-                'to': { strokeDashoffset: 0, opacity: 1 },
-            },
-            'sigil-node-fade-in-anim': {
-                'from': { opacity: 0, transform: 'scale(0.5)' },
-                'to': { opacity: 1, transform: 'scale(1)' },
-            },
-            'sigil-node-idle-pulse-anim': {
-                '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 0.8, filter: 'brightness(100%) drop-shadow(0 0 3px var(--node-color, #00BFFF))' },
-                '50%': { r: 'calc(var(--node-radius, 8) * 1.1)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 6px var(--node-color, #00BFFF))' },
-            },
-            'sigil-node-target-pulse-anim': {
-                '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 5px var(--node-color, #00BFFF))' },
-                '50%': { r: 'calc(var(--node-radius, 8) * 1.2)', opacity: 1, filter: 'brightness(150%) drop-shadow(0 0 10px var(--node-color, #00BFFF))' },
-            },
-            'sigil-success-flash-overall-anim': {
-                '0%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' },
-                '50%': { opacity: 1, filter: 'brightness(250%) drop-shadow(0 0 20px #00FF7F) drop-shadow(0 0 30px white)' },
-                '100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' },
-            },
-            'sigil-failure-flash-overall-anim': {
-                '0%, 100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #EF4444)' },
-                '50%': { opacity: 1, filter: 'brightness(200%) drop-shadow(0 0 15px #EF4444) drop-shadow(0 0 25px red)' },
-            },
-            'sigil-glitch-effect-anim': {
-                '0%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 },
-                '10%': { transform: 'translate(-2px, 1px) skew(-1deg, 0.5deg)', opacity: 0.8 },
-                '20%': { transform: 'translate(1px, -1px) skew(0.5deg, -1deg)', opacity: 1 },
-                '30%': { transform: 'translate(3px, 2px) skew(1.5deg, 0deg)', opacity: 0.7 },
-                '40%': { transform: 'translate(-1px, -2px) skew(-0.5deg, 1deg)', opacity: 1 },
-                '50%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1, filter: 'brightness(150%)' },
-                '60%': { transform: 'translate(2px, -1px) skew(1deg, -0.5deg)', opacity: 0.9 },
-                '70%': { transform: 'translate(-2px, 2px) skew(-1deg, 1deg)', opacity: 1 },
-                '80%': { transform: 'translate(1px, 1px) skew(0.5deg, 0.5deg)', opacity: 0.6 },
-                '90%': { transform: 'translate(-1px, -1px) skew(-0.5deg, -0.5deg)', opacity: 1 },
-                '100%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 },
-            },
-            'sigil-feedback-text-materialize-anim': {
-                '0%': { opacity: 0, transform: 'scale(0.8) translateY(10px)' },
-                '100%': { opacity: 1, transform: 'scale(1) translateY(0px)' },
-            },
-            // Document Upload Keyframes
-            'icon-glitch-anim': {
-              '0%': { transform: 'translate(0,0) skew(0)', opacity: 1 },
-              '10%': { transform: 'translate(-2px, 1px) skew(-2deg, 1deg)', opacity: 0.7 },
-              '20%': { transform: 'translate(1px, -1px) skew(1deg, -2deg)', opacity: 1 },
-              '30%': { transform: 'translate(0,0) skew(0)', opacity: 0.5, filter: 'brightness(2)'},
-              '100%': { transform: 'translate(0,0) skew(0)', opacity: 1 },
-            },
-            'icon-compress-anim': {
-              '0%': { transform: 'scale(1)', opacity: 1, filter: 'brightness(1) drop-shadow(0 0 5px #00ffff)' },
-              '70%': { transform: 'scale(0.05)', opacity: 0.8, filter: 'brightness(10) drop-shadow(0 0 15px #ffffff)' },
-              '100%': { transform: 'scale(0)', opacity: 0, filter: 'brightness(20) drop-shadow(0 0 20px #ffffff)' },
-            },
-            'ui-shockwave-pulse-anim': {
-              '0%': { transform: 'scale(0.1)', opacity: 0 },
-              '30%': { transform: 'scale(1)', opacity: 0.7, borderWidth: '15px', borderColor: 'rgba(0, 255, 255, 0.5)'},
-              '100%': { transform: 'scale(20)', opacity: 0, borderWidth: '1px', borderColor: 'rgba(0, 255, 255, 0)' },
-            },
-            /* SignalLostScreen v18 Animations */
-            'holographic-button-pulse-anim': { /* For the canvas-rendered button's container if needed or as a generic pulse */
-              '0%, 100%': { 
-                filter: 'drop-shadow(0 0 4px rgba(0,220,255,0.7)) drop-shadow(0 0 8px rgba(0,220,255,0.5))',
-                transform: 'scale(1)'
-              },
-              '50%': { 
-                filter: 'drop-shadow(0 0 7px rgba(0,255,255,0.9)) drop-shadow(0 0 15px rgba(0,255,255,0.7))',
-                transform: 'scale(1.02)'
-              }
-            }
+            spark: { '0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' }, '100%': { transform: 'scale(10) rotate(360deg)', opacity: '0' }, },
+            typewriter: { from: { width: '0' }, to: { width: '100%' } },
+            beam: { '0%': { height: '0', opacity: '0' }, '50%': { height: '128px', opacity: '1' }, '100%': { height: '128px', opacity: '0', transform: 'translate(-50%, -100%) scaleY(1.5)' } },
+            fadeInAnim: { '0%': { opacity:'0', transform: 'scale(0.95)' }, '100%': { opacity:'1', transform: 'scale(1)' }  },
+            slideUp: {  '0%': { opacity:'0', transform: 'translate(-50%, -40%)' },  '100%': { opacity:'1', transform: 'translate(-50%, -50%)' }  },
+            crystalCorePulse: {  '0%, 100%': { opacity: 0.6, transform: 'scale(1)' }, '50%': { opacity: 1, transform: 'scale(1.15)' },  },
+             'construct-char-anim': {  '0%': { opacity: '0', transform: 'translateY(20px) scale(0.3) rotateX(90deg) rotateY(20deg)', color: '#00BFFF' }, '20%': { opacity: '0.3', transform: 'translateY(10px) scale(0.7) rotateX(45deg) rotateY(10deg)', color: '#00BFFF' }, '60%': { opacity: '1', transform: 'translateY(-5px) scale(1.2) rotateX(-10deg) rotateY(-5deg)', color: '#87CEFA' },  '100%': { opacity: '1', transform: 'translateY(0) scale(1) rotateX(0deg) rotateY(0deg)', color: '#FFFFFF' }, },
+            'impact-flash-anim': {  '0%': { opacity: '1', filter: 'brightness(1)'}, '50%': { opacity: '0.8', filter: 'brightness(300%) drop-shadow(0 0 10px white)' },  '100%': { opacity: '1', filter: 'brightness(1)' }, },
+            'impact-flash-pseudo-anim': {  '0%': { opacity: '0.7' }, '50%': { opacity: '1' }, '100%': { opacity: '0'}, },
+            'pulsing-blue-glow-anim': { '0%, 100%': {  textShadow: '0 0 4px #fff, 0 0 8px #00BFFF, 0 0 12px #00BFFF, 0 0 18px #00BFFF, 0 0 24px #00BFFF, 0 0 30px #00BFFF'  }, '50%': {  textShadow: '0 0 6px #fff, 0 0 10px #00BFFF, 0 0 16px #00BFFF, 0 0 24px #00BFFF, 0 0 32px #00BFFF, 0 0 45px #00BFFF, 0 0 60px #00BFFF'  }, },
+            'ember-fly-fade-anim': { '0%': { opacity: '1', transform: 'translate(var(--ember-start-x, 0px), var(--ember-start-y, 0px)) scale(1)' }, '100%': { opacity: '0', transform: 'translate(var(--ember-end-x, 0px), var(--ember-end-y, 0px)) scale(0.2)' }, },
+            'orb-deep-thrum-glow-anim': { '0%, 100%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px #00BFFF) brightness(1.0)' }, '50%': { filter: 'drop-shadow(0 0 18px #00BFFF) drop-shadow(0 0 30px #00BFFF) brightness(1.2)' }, },
+            'orb-deep-thrum-core-scale-anim': { '0%, 100%': { transform: 'translate(-50%, -50%) scale(1)' }, '50%': { transform: 'translate(-50%, -50%) scale(1.1)' }, },
+            'orb-deep-thrum-core-opacity-anim': { '0%, 100%': { opacity: 0.8 }, '50%': { opacity: 1 }, },
+            'orb-unstable-flicker-anim': { '0%, 100%': { filter: 'drop-shadow(0 0 10px #00BFFF) drop-shadow(0 0 18px #00BFFF) brightness(0.95)' }, '20%': { filter: 'drop-shadow(0 0 15px #00FFFF) drop-shadow(0 0 25px #00FFFF) brightness(1.25)' }, '40%': { filter: 'drop-shadow(0 0 8px #00BFFF) drop-shadow(0 0 16px #00BFFF) brightness(0.85)' }, '60%': { filter: 'drop-shadow(0 0 18px #00FFFF) drop-shadow(0 0 30px #00FFFF) brightness(1.35)' }, '80%': { filter: 'drop-shadow(0 0 12px #00BFFF) drop-shadow(0 0 20px #00BFFF) brightness(0.90)' }, },
+            'orb-vibrate-anim': {  '0%': { transform: 'translate(0px, 0px)' }, '25%': { transform: 'translate(0.5px, -0.5px)' }, '50%': { transform: 'translate(-0.5px, 0.5px)' }, '75%': { transform: 'translate(0.25px, 0.25px)' }, '100%': { transform: 'translate(0px, 0px)' }, },
+            'orb-flash-expand-anim': {  '0%': { transform: 'translate(-50%, -50%) scale(0)', opacity: 0, backgroundColor: 'white' },  '20%': { transform: 'translate(-50%, -50%) scale(1)', opacity: 1, backgroundColor: 'white' },  '100%': { transform: 'translate(-50%, -50%) scale(50)', opacity: 0, backgroundColor: 'white' },  },
+            'data-stream-shimmer-anim': {  '0%': { transform: 'translateX(-150%) skewX(-25deg)' },  '100%': { transform: 'translateX(150%) skewX(-25deg)' },  },
+            'data-stream-starchart-pan-anim': {  '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-66.666%)' },  },
+            'screen-flash-white-anim': { '0%': { opacity: '0' }, '50%': { opacity: '1' }, '100%': { opacity: '0' }, },
+            'hud-line-draw-x-anim': { 'from': { width: '0%', opacity: '0' }, 'to': { width: '100%', opacity: '1' }, },
+            'hud-line-draw-y-anim': { 'from': { height: '0%', opacity: '0' }, 'to': { height: '100%', opacity: '1' }, },
+            'hud-text-flicker-char-anim': { '0%': { opacity: '0', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' }, '20%': { opacity: '1', textShadow: '0 0 2px #00FFFF, 0 0 5px #00FFFF' }, '30%': { opacity: '0.3' }, '40%': { opacity: '1', textShadow: '0 0 5px #00FFFF, 0 0 10px #00FFFF' }, '60%': { opacity: '0.5' }, '70%': { opacity: '1' }, '100%': { opacity: '1', textShadow: '0 0 3px rgba(0,255,255,0.7), 0 0 5px rgba(0,255,255,0.5)'}, },
+            'video-player-expand-y-anim': { 'from': { transform: 'scaleY(0)', opacity: '0' }, 'to': { transform: 'scaleY(1)', opacity: '1' }, },
+            'video-player-border-pulse-anim': { '0%, 100%': { borderColor: 'rgba(0, 255, 255, 0.7)', boxShadow: '0 0 8px rgba(0,255,255,0.5)' }, '50%': { borderColor: 'rgba(0, 255, 255, 1)', boxShadow: '0 0 15px rgba(0,255,255,0.8)' }, },
+            'sigil-draw-line-anim': { 'from': { strokeDashoffset: 'var(--line-length, 1000)', opacity: 0 }, 'to': { strokeDashoffset: 0, opacity: 1 }, },
+            'sigil-node-fade-in-anim': { 'from': { opacity: 0, transform: 'scale(0.5)' }, 'to': { opacity: 1, transform: 'scale(1)' }, },
+            'sigil-node-idle-pulse-anim': { '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 0.8, filter: 'brightness(100%) drop-shadow(0 0 3px var(--node-color, #00BFFF))' }, '50%': { r: 'calc(var(--node-radius, 8) * 1.1)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 6px var(--node-color, #00BFFF))' }, },
+            'sigil-node-target-pulse-anim': { '0%, 100%': { r: 'var(--node-radius, 8)', opacity: 1, filter: 'brightness(120%) drop-shadow(0 0 5px var(--node-color, #00BFFF))' }, '50%': { r: 'calc(var(--node-radius, 8) * 1.2)', opacity: 1, filter: 'brightness(150%) drop-shadow(0 0 10px var(--node-color, #00BFFF))' }, },
+            'sigil-success-flash-overall-anim': { '0%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' }, '50%': { opacity: 1, filter: 'brightness(250%) drop-shadow(0 0 20px #00FF7F) drop-shadow(0 0 30px white)' }, '100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #00FF7F)' }, },
+            'sigil-failure-flash-overall-anim': { '0%, 100%': { opacity: 1, filter: 'brightness(100%) drop-shadow(0 0 5px #EF4444)' }, '50%': { opacity: 1, filter: 'brightness(200%) drop-shadow(0 0 15px #EF4444) drop-shadow(0 0 25px red)' }, },
+            'sigil-glitch-effect-anim': { '0%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 }, '10%': { transform: 'translate(-2px, 1px) skew(-1deg, 0.5deg)', opacity: 0.8 }, '20%': { transform: 'translate(1px, -1px) skew(0.5deg, -1deg)', opacity: 1 }, '30%': { transform: 'translate(3px, 2px) skew(1.5deg, 0deg)', opacity: 0.7 }, '40%': { transform: 'translate(-1px, -2px) skew(-0.5deg, 1deg)', opacity: 1 }, '50%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1, filter: 'brightness(150%)' }, '60%': { transform: 'translate(2px, -1px) skew(1deg, -0.5deg)', opacity: 0.9 }, '70%': { transform: 'translate(-2px, 2px) skew(-1deg, 1deg)', opacity: 1 }, '80%': { transform: 'translate(1px, 1px) skew(0.5deg, 0.5deg)', opacity: 0.6 }, '90%': { transform: 'translate(-1px, -1px) skew(-0.5deg, -0.5deg)', opacity: 1 }, '100%': { transform: 'translate(0, 0) skew(0deg, 0deg)', opacity: 1 }, },
+            'sigil-feedback-text-materialize-anim': { '0%': { opacity: 0, transform: 'scale(0.8) translateY(10px)' }, '100%': { opacity: 1, transform: 'scale(1) translateY(0px)' }, },
+            'icon-glitch-anim': { '0%': { transform: 'translate(0,0) skew(0)', opacity: 1 }, '10%': { transform: 'translate(-2px, 1px) skew(-2deg, 1deg)', opacity: 0.7 }, '20%': { transform: 'translate(1px, -1px) skew(1deg, -2deg)', opacity: 1 }, '30%': { transform: 'translate(0,0) skew(0)', opacity: 0.5, filter: 'brightness(2)'}, '100%': { transform: 'translate(0,0) skew(0)', opacity: 1 }, },
+            'icon-compress-anim': { '0%': { transform: 'scale(1)', opacity: 1, filter: 'brightness(1) drop-shadow(0 0 5px #00ffff)' }, '70%': { transform: 'scale(0.05)', opacity: 0.8, filter: 'brightness(10) drop-shadow(0 0 15px #ffffff)' }, '100%': { transform: 'scale(0)', opacity: 0, filter: 'brightness(20) drop-shadow(0 0 20px #ffffff)' }, },
+            'ui-shockwave-pulse-anim': { '0%': { transform: 'scale(0.1)', opacity: 0 }, '30%': { transform: 'scale(1)', opacity: 0.7, borderWidth: '15px', borderColor: 'rgba(0, 255, 255, 0.5)'}, '100%': { transform: 'scale(20)', opacity: 0, borderWidth: '1px', borderColor: 'rgba(0, 255, 255, 0)' }, },
           },
-          colors: {
-            cyan: {
-              DEFAULT: '#06b6d4', 50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63', 950: '#083344'
-            },
-            magenta: {
-                DEFAULT: '#d946ef', 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75', 950: '#4a044e'
-            },
-            purple: { DEFAULT: '#a855f7', 50: '#fbf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce', 800: '#6b21a8', 900: '#581c87', 950: '#3b0764'},
-            indigo: { DEFAULT: '#6366f1', 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b'}
-          },
-          dropShadow: {
-            '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4',
-          }
+          colors: { /* Tailwind colors */ cyan: { DEFAULT: '#06b6d4', 50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9', 400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490', 800: '#155e75', 900: '#164e63', 950: '#083344' }, magenta: { DEFAULT: '#d946ef', 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75', 950: '#4a044e' }, purple: { DEFAULT: '#a855f7', 50: '#fbf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce', 800: '#6b21a8', 900: '#581c87', 950: '#3b0764'}, indigo: { DEFAULT: '#6366f1', 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81', 950: '#1e1b4b'} },
+          dropShadow: { '[0_0_15px_#06b6d4]': '0 0 15px #06b6d4', }
         }
       },
-      plugins: [
-        function({addUtilities}) {
-          const newUtilities = {
-            '.scrollbar-thin': {
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'var(--scrollbar-thumb) var(--scrollbar-track)'
-            },
-            '.scrollbar-thumb-indigo-500': { '--scrollbar-thumb': '#6366f1' },
-            '.scrollbar-track-indigo-900\\/50': { '--scrollbar-track': 'rgba(49, 46, 129, 0.5)' },
-            '.scrollbar-webkit': { }
-          };
-          addUtilities(newUtilities, ['responsive', 'hover']);
-           addUtilities({
-            '.scrollbar-webkit::-webkit-scrollbar': {
-              width: '8px',
-              height: '8px',
-            },
-            '.scrollbar-webkit::-webkit-scrollbar-track': {
-              background: 'rgba(49, 46, 129, 0.5)',
-            },
-            '.scrollbar-webkit::-webkit-scrollbar-thumb': {
-              backgroundColor: '#6366f1',
-              borderRadius: '4px',
-              border: '2px solid rgba(49, 46, 129, 0.5)',
-            },
-          });
-        }
-      ]
+      plugins: [ function({addUtilities}) { /* Scrollbar utilities */ const newUtilities = { '.scrollbar-thin': { scrollbarWidth: 'thin', scrollbarColor: 'var(--scrollbar-thumb) var(--scrollbar-track)' }, '.scrollbar-thumb-indigo-500': { '--scrollbar-thumb': '#6366f1' }, '.scrollbar-track-indigo-900\\/50': { '--scrollbar-track': 'rgba(49, 46, 129, 0.5)' }, '.scrollbar-webkit': { } }; addUtilities(newUtilities, ['responsive', 'hover']); addUtilities({ '.scrollbar-webkit::-webkit-scrollbar': { width: '8px', height: '8px', }, '.scrollbar-webkit::-webkit-scrollbar-track': { background: 'rgba(49, 46, 129, 0.5)', }, '.scrollbar-webkit::-webkit-scrollbar-thumb': { backgroundColor: '#6366f1', borderRadius: '4px', border: '2px solid rgba(49, 46, 129, 0.5)', }, }); } ]
     }
   </script>
 <script type="importmap">
@@ -599,8 +306,8 @@
     "react": "https://esm.sh/react@^19.1.0",
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
     "react/": "https://esm.sh/react@^19.1.0/",
-    "three": "https://esm.sh/three@0.160.0",
-    "three/": "https://esm.sh/three@0.160.0/"
+    "three": "https://esm.sh/three@^0.177.0",
+    "three/": "https://esm.sh/three@^0.177.0/"
   }
 }
 </script>
