@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import HeroSection from './components/HeroSection';
 import CalibrationSequence from './components/CalibrationSequence';
-import DataStreamMap from './components/DataStreamMap';
+import DataStreamMap3D from './components/DataStreamMap3D'; // Updated import
 import ShareSection from './components/ShareSection';
 import ArchivesSection from './components/ArchivesSection';
 import Footer from './components/Footer';
@@ -94,8 +94,8 @@ const App: React.FC = () => {
         {/* Only render other sections if not in calibration and not transitioning away from hero */}
         {currentView === AppView.Hero && !isTransitioningToCalibration && (
           <>
-            <section ref={dataStreamMapRef}>
-                <DataStreamMap onJumpToSimulation={handleJumpToSimulation} />
+            <section ref={dataStreamMapRef} id="data-stream-map" className="min-h-screen bg-black relative"> {/* Ensure section has height for 3D map */}
+                <DataStreamMap3D onJumpToSimulation={handleJumpToSimulation} />
             </section>
             
             <ShareSection />

@@ -1,4 +1,6 @@
 
+import * as THREE from 'three';
+
 export enum AppView {
   Hero,
   Calibration,
@@ -13,12 +15,22 @@ export enum CalibrationModule {
   Completed,
 }
 
-export interface KeyPoint {
+export interface KeyPoint { // Used by the old DataStreamMap and potentially other UI
   id: string;
   title: string;
   description: string;
   timestamp: string; // e.g., "0:07"
   moduleTarget?: CalibrationModule; 
+}
+
+export interface StreamNodeData { // For the new DataStreamMap3D
+  id: string;
+  title: string;
+  description: string;
+  position: THREE.Vector3;
+  size: number;
+  moduleTarget?: CalibrationModule;
+  connectedTo?: string[]; // IDs of other nodes it's connected to by lines
 }
 
 export interface ParticleStyle {
