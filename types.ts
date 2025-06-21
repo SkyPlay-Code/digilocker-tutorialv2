@@ -29,3 +29,9 @@ export interface ParticleStyle {
   size: string;
   opacity: number;
 }
+
+export interface TimelineModuleConfig {
+  id: CalibrationModule;
+  label: string;
+  progressAtStart: number;
+}

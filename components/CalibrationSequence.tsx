@@ -5,11 +5,12 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { CalibrationModule as CalibrationModuleEnum } from '../types'; 
+import { CalibrationModule as CalibrationModuleEnum, TimelineModuleConfig } from '../types'; 
 import { LogoIcon } from './icons'; 
 import AuthenticationSigil from './AuthenticationSigil';
 import DocumentUploadModule from './DocumentUploadModule';
 import PinEncryptionModule from './PinEncryptionModule';
+import FractalTimeline from './FractalTimeline';
 
 interface CalibrationSequenceProps {
   onClose: () => void;
@@ -32,6 +33,13 @@ const HUDText: React.FC<{ text: string; delay?: number, className?: string }> = 
   );
 };
 
+const TIMELINE_MODULE_CONFIGS: TimelineModuleConfig[] = [
+  { id: CalibrationModuleEnum.Authentication, label: "Module 01: Identity Auth", progressAtStart: 0 },
+  { id: CalibrationModuleEnum.DocumentUpload, label: "Module 02: Data Materialization", progressAtStart: 15 },
+  { id: CalibrationModuleEnum.PinEncryption, label: "Module 03: Quantum PIN Encryption", progressAtStart: 30 },
+  { id: CalibrationModuleEnum.Completed, label: "Calibration Complete", progressAtStart: 50 },
+];
+
 
 const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jumpToModule }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -46,12 +54,14 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   const [hudBooted, setHudBooted] = useState(false);
   const [currentLoadedModule, setCurrentLoadedModule] = useState<CalibrationModuleEnum | null>(null);
+  const [completedModuleIds, setCompletedModuleIds] = useState<CalibrationModuleEnum[]>([]);
   const [syncProgress, setSyncProgress] = useState(0);
   const [currentObjectiveText, setCurrentObjectiveText] = useState("");
   const [materializedObjects, setMaterializedObjects] = useState<THREE.Object3D[]>([]);
   const animationFrameIdRef = useRef<number | null>(null);
   const [isDataCoreVisible, setIsDataCoreVisible] = useState(true);
   const pinConstellationRef = useRef<THREE.Group | null>(null);
+  const authSigilRef = useRef<{ reset: () => void } | null>(null); // For resetting sigil
 
 
   useEffect(() => {
@@ -186,6 +196,12 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       setHudBooted(true);
       console.log("AI Voice: Calibration sequence initiated. Welcome.");
        const initialModule = jumpToModule ?? CalibrationModuleEnum.Authentication;
+       if (jumpToModule) { // If jumping, mark all previous modules as completed
+            const jumpedModuleIndex = TIMELINE_MODULE_CONFIGS.findIndex(m => m.id === jumpToModule);
+            if (jumpedModuleIndex > -1) {
+                setCompletedModuleIds(TIMELINE_MODULE_CONFIGS.slice(0, jumpedModuleIndex).map(m => m.id));
+            }
+        }
         loadModule(initialModule);
     }, 500);
 
@@ -211,13 +227,11 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       }
       console.log("CalibrationSequence: Data Core scene cleaned up.");
     };
-  }, [jumpToModule]);
+  }, [jumpToModule]); // jumpToModule dependency
 
   // Handle visibility of Data Core elements
   useEffect(() => {
     if(sceneRef.current) sceneRef.current.visible = isDataCoreVisible;
-    // Individual elements like grids, comets, materialized objects could also be toggled here if needed
-    // but toggling the whole scene visibility is simpler for now.
   }, [isDataCoreVisible]);
 
 
@@ -236,27 +250,32 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   const loadModule = (module: CalibrationModuleEnum) => {
     setCurrentLoadedModule(module);
+    const moduleConfig = TIMELINE_MODULE_CONFIGS.find(m => m.id === module);
+    
+    if (moduleConfig) {
+        setSyncProgress(moduleConfig.progressAtStart);
+        setCurrentObjectiveText(`CURRENT OBJECTIVE: ${moduleConfig.label.replace(/Module \d+: /,'')}`);
+    } else if (module === CalibrationModuleEnum.Authentication) { // Fallback for initial load if not in TIMELINE_MODULE_CONFIGS (e.g. Intro)
+        setSyncProgress(0);
+        setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
+    }
+
     switch (module) {
         case CalibrationModuleEnum.Authentication:
-            setSyncProgress(0);
-            setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
             console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
             setIsDataCoreVisible(true);
+            authSigilRef.current?.reset(); // Reset sigil if rewinding to it
             break;
         case CalibrationModuleEnum.DocumentUpload:
-            setSyncProgress(15);
-            setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
-            console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
+             console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
             setIsDataCoreVisible(true);
             break;
         case CalibrationModuleEnum.PinEncryption:
-            setSyncProgress(30);
-            setCurrentObjectiveText("CURRENT OBJECTIVE: Set Quantum Entanglement Key");
             console.log("AI Voice: Module 03: Quantum Pin Encryption. Create your key by selecting six stars to form a unique constellation.");
             setIsDataCoreVisible(false); 
             break;
         case CalibrationModuleEnum.Completed:
-            setSyncProgress(100);
+            setSyncProgress(100); // Override for completion
             setCurrentObjectiveText("ALL SYSTEMS CALIBRATED. QUANTUM VAULT ONLINE.");
             console.log("AI Voice: Calibration complete. Quantum Vault systems nominal.");
             setIsDataCoreVisible(true);
@@ -264,10 +283,23 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     }
   };
 
+  const addCompletedModule = (moduleId: CalibrationModuleEnum) => {
+    setCompletedModuleIds(prev => {
+        if (prev.includes(moduleId)) return prev;
+        // Ensure modules are added in order according to TIMELINE_MODULE_CONFIGS
+        const newCompleted = [...prev, moduleId];
+        const sorted = TIMELINE_MODULE_CONFIGS
+            .filter(config => newCompleted.includes(config.id))
+            .map(config => config.id);
+        return sorted;
+    });
+  };
 
   const handleAuthenticationSuccess = useCallback(() => {
     console.log("Authentication successful!");
-    setSyncProgress(15);
+    addCompletedModule(CalibrationModuleEnum.Authentication);
+    const nextModuleConfig = TIMELINE_MODULE_CONFIGS.find(m => m.id === CalibrationModuleEnum.DocumentUpload);
+    if(nextModuleConfig) setSyncProgress(nextModuleConfig.progressAtStart);
     setCurrentObjectiveText("BIOMETRIC SIGNATURE VERIFIED");
     console.log("AI Voice: Signature Verified. Module 01 complete.");
     setTimeout(() => {
@@ -281,8 +313,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   const handleDocumentUploadSuccess = useCallback((newObject: THREE.Object3D) => {
     console.log("Document Materialization successful!");
+    addCompletedModule(CalibrationModuleEnum.DocumentUpload);
     setMaterializedObjects(prev => [...prev.filter(o => o.uuid !== newObject.uuid), newObject]);
-    setSyncProgress(30);
+    const nextModuleConfig = TIMELINE_MODULE_CONFIGS.find(m => m.id === CalibrationModuleEnum.PinEncryption);
+    if(nextModuleConfig) setSyncProgress(nextModuleConfig.progressAtStart);
     setCurrentObjectiveText("DATA-CONSTRUCT FORGED & MATERIALIZED"); 
     console.log("AI Voice: Data-construct received and materialized.");
     setTimeout(() => {
@@ -292,50 +326,39 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   const handleDocumentUploadFailure = useCallback(() => {
     console.log("Document Materialization failed.");
+    // Potentially allow retry or skip
   }, []);
 
   const handlePinSetSuccess = useCallback((constellationGroupFromModule: THREE.Group) => {
     console.log("AI Voice: Entanglement key registered. Your constellation is now your signature.");
-    setSyncProgress(50);
+    addCompletedModule(CalibrationModuleEnum.PinEncryption);
+    const nextModuleConfig = TIMELINE_MODULE_CONFIGS.find(m => m.id === CalibrationModuleEnum.Completed);
+    if(nextModuleConfig) setSyncProgress(nextModuleConfig.progressAtStart);
     setCurrentObjectiveText("QUANTUM ENTANGLEMENT KEY REGISTERED");
     
-    if (pinConstellationRef.current && sceneRef.current) { // Clean up old one if exists
+    if (pinConstellationRef.current && sceneRef.current) { 
         sceneRef.current.remove(pinConstellationRef.current);
-        pinConstellationRef.current.traverse(child => {
-            if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
-                child.geometry.dispose();
-                const material = (child as THREE.Mesh | THREE.Line).material;
-                if (Array.isArray(material)) material.forEach(m => m.dispose());
-                else if (material) (material as THREE.Material).dispose();
-            }
-        });
+        pinConstellationRef.current.traverse(child => { /* dispose geometry/material */ });
     }
     
-    // The constellationGroupFromModule contains clones. We can use it directly.
     constellationGroupFromModule.traverse(child => {
         const obj = child as THREE.Mesh | THREE.Line;
         if (obj.material) {
-            const material = obj.material as THREE.Material; // It's not an array for basic stars/lines
+            const material = obj.material as THREE.Material; 
             material.transparent = true;
-            material.opacity = 0.20; // Faintly visible
-            if (material instanceof THREE.LineBasicMaterial) {
-                material.color.multiplyScalar(0.7); // Darken lines slightly
-            } else if (material instanceof THREE.MeshBasicMaterial) {
-                 material.color.multiplyScalar(0.7); // Darken stars slightly
+            material.opacity = 0.20; 
+            if (material instanceof THREE.LineBasicMaterial || material instanceof THREE.MeshBasicMaterial) {
+                 material.color.multiplyScalar(0.7); 
             }
         }
     });
     constellationGroupFromModule.scale.set(0.07, 0.07, 0.07); 
-    constellationGroupFromModule.position.set(2, -3, -10); // Position it in the Data Core background
+    constellationGroupFromModule.position.set(2, -3, -10); 
     constellationGroupFromModule.rotation.set(Math.PI / 8, Math.PI / 4, 0);
 
     pinConstellationRef.current = constellationGroupFromModule;
-    if (sceneRef.current) {
-        sceneRef.current.add(pinConstellationRef.current);
-    }
-
-    setIsDataCoreVisible(true); // Fade Data Core back in
-    //setCurrentLoadedModule(null); // Pin Encryption module hides itself after calling onModuleComplete
+    if (sceneRef.current) sceneRef.current.add(pinConstellationRef.current);
+    setIsDataCoreVisible(true); 
 
     setTimeout(() => {
       loadModule(CalibrationModuleEnum.Completed);
@@ -344,6 +367,35 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
   
   const handlePinReset = useCallback(() => {
       console.log("AI Voice: Clearing sequence. Please select a new constellation.");
+  }, []);
+
+  const handleRewindToModule = useCallback((moduleId: CalibrationModuleEnum) => {
+    console.log(`Rewinding to Module: ${moduleId}`);
+    console.log("Audio: REWIND SOUND (reversed whoosh)");
+    
+    const targetModuleConfig = TIMELINE_MODULE_CONFIGS.find(m => m.id === moduleId);
+    if (!targetModuleConfig) return;
+
+    console.log(`AI Voice: Reverting timeline. Re-engaging ${targetModuleConfig.label.split(':')[0]}.`);
+    
+    // Update completed modules list
+    const targetModuleIndex = TIMELINE_MODULE_CONFIGS.findIndex(m => m.id === moduleId);
+    setCompletedModuleIds(TIMELINE_MODULE_CONFIGS.slice(0, targetModuleIndex).map(m => m.id));
+
+    // Load the target module (which also sets syncProgress and objective text)
+    loadModule(moduleId);
+
+    // Clean up future scene elements if necessary
+    if (moduleId < CalibrationModuleEnum.DocumentUpload) {
+        materializedObjects.forEach(obj => sceneRef.current?.remove(obj));
+        setMaterializedObjects([]);
+    }
+    if (moduleId < CalibrationModuleEnum.PinEncryption && pinConstellationRef.current && sceneRef.current) {
+        sceneRef.current.remove(pinConstellationRef.current);
+        // Proper disposal of pinConstellationRef.current geometry/materials if needed
+        pinConstellationRef.current = null;
+    }
+
   }, []);
 
 
@@ -355,31 +407,21 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         cameraRef.current.position.z -= 0.5; 
         cameraRef.current.fov = originalFov + 10; 
         cameraRef.current.updateProjectionMatrix();
-        
-        console.log(`Camera recoiled: Z from ${originalZ.toFixed(2)} to ${cameraRef.current.position.z.toFixed(2)}, FOV from ${originalFov} to ${cameraRef.current.fov}`);
-
         setTimeout(() => {
             if (cameraRef.current) {
                 cameraRef.current.position.z = originalZ;
                 cameraRef.current.fov = originalFov;
                 cameraRef.current.updateProjectionMatrix();
-                console.log("Camera recoil reset.");
             }
         }, 150); 
     }
   }, []);
 
   const panCameraToTarget = useCallback((targetPosition: THREE.Vector3 | null) => {
-    if (targetPosition && cameraRef.current) {
-        console.log(`CalibrationSequence: ACTION - Pan Camera Towards Target: x:${targetPosition.x.toFixed(2)}, y:${targetPosition.y.toFixed(2)}, z:${targetPosition.z.toFixed(2)}`);
-        // cameraRef.current.lookAt(targetPosition); // Simple one, or lerp
-    } else {
-        console.log("CalibrationSequence: ACTION - Reset Camera Pan/Target.");
-    }
+    // Placeholder - actual camera panning logic would go here
   }, []);
 
   const updateEnvironmentForComet = useCallback((cometPosition: THREE.Vector3) => {
-    console.log(`CalibrationSequence: ACTION - Environment Reacts to Comet at: x:${cometPosition.x.toFixed(2)}, y:${cometPosition.y.toFixed(2)}, z:${cometPosition.z.toFixed(2)}`);
      gridsRef.current.forEach(grid => {
         const distanceToGridPlane = Math.min(
             Math.abs(grid.position.x - cometPosition.x), 
@@ -403,7 +445,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
   }, []);
   
   const triggerShockwaveEffect = useCallback(() => {
-      console.log("CalibrationSequence: ACTION - Visual Shockwave Effect Triggered!");
+      // Placeholder - visual shockwave logic
   }, []);
 
 
@@ -416,6 +458,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       case CalibrationModuleEnum.Authentication:
         return (
           <AuthenticationSigil 
+            key={`auth-${completedModuleIds.length}`} // Force re-render on rewind
             onSuccess={handleAuthenticationSuccess} 
             onRetryPrompt={handleAuthenticationRetryPrompt} 
           />
@@ -424,6 +467,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         if (!sceneRef.current || !cameraRef.current) return null; 
         return (
           <DocumentUploadModule
+            key={`docupload-${completedModuleIds.length}`}
             scene={sceneRef.current}
             camera={cameraRef.current}
             renderer={rendererRef.current}
@@ -439,12 +483,12 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         if (!rendererRef.current) return null; 
         return (
             <PinEncryptionModule
-                renderer={rendererRef.current} // PinEncryptionModule manages its own scene now
+                key={`pin-${completedModuleIds.length}`}
+                renderer={rendererRef.current}
                 onPinSuccess={handlePinSetSuccess}
                 onReset={handlePinReset}
                 onModuleComplete={() => { 
-                    setIsDataCoreVisible(true); // Ensure data core is visible after Pin module fully exits
-                    // Next module load is handled by onPinSuccess timeout
+                    setIsDataCoreVisible(true); 
                 }}
             />
         );
@@ -458,7 +502,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     <div className={`fixed inset-0 z-40 animate-fadeIn ${!isDataCoreVisible && currentLoadedModule === CalibrationModuleEnum.PinEncryption ? 'bg-black' : ''}`}> 
       <div ref={mountRef} className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isDataCoreVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
 
-      {isDataCoreVisible && ( // Hide main HUD when Data Core is not visible (e.g., during PIN entry)
+      {isDataCoreVisible && ( 
         <>
           <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
             <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
@@ -471,7 +515,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             <div className="h-8 w-0.5 bg-cyan-400 animate-hud-line-draw-y" style={{ animationDelay: '0.1s' }}></div>
           </div>
 
-          <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 max-w-md p-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`absolute bottom-[140px] left-1/2 -translate-x-1/2 w-3/4 max-w-md p-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
             <div className="flex items-center justify-between">
                 <HUDText text="SYNC PROGRESS:" delay={1.2} />
                 <HUDText text={`${Math.round(syncProgress)}%`} delay={1.2} />
@@ -484,21 +528,25 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             )}
           </div>
           
-          <button onClick={onClose} className="absolute bottom-4 right-4 text-cyan-300 hover:text-white transition-colors z-50 font-roboto-mono p-2 border border-cyan-500/50 hover:border-cyan-400 rounded text-sm animate-fadeIn" style={{animationDelay: '2s'}}>
+          <button onClick={onClose} className="absolute bottom-[150px] right-4 text-cyan-300 hover:text-white transition-colors z-50 font-roboto-mono p-2 border border-cyan-500/50 hover:border-cyan-400 rounded text-sm animate-fadeIn" style={{animationDelay: '2s'}}>
             [ EXIT CALIBRATION ]
           </button>
         </>
       )}
       
-      {/* Module Content Area - always rendered for the active module */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        {/* The active module will set pointer-events: auto on its own root if it needs interaction */}
         {renderCurrentModuleContent()}
       </div>
+
+      <FractalTimeline
+        moduleConfigs={TIMELINE_MODULE_CONFIGS}
+        completedModuleIds={completedModuleIds}
+        currentModuleId={currentLoadedModule}
+        onRewindToModule={handleRewindToModule}
+      />
 
     </div>
   );
 };
 
 export default CalibrationSequence;
-      
