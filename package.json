@@ -11,14 +11,7 @@
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "three": "0.160.0",
-    "three/examples/jsm/controls/OrbitControls.js": "latest",
-    "three/examples/jsm/postprocessing/EffectComposer.js": "latest",
-    "three/examples/jsm/postprocessing/RenderPass.js": "latest",
-    "three/examples/jsm/postprocessing/UnrealBloomPass.js": "latest",
-    "three/examples/jsm/shaders/FXAAShader.js": "latest",
-    "three/examples/jsm/postprocessing/ShaderPass.js": "latest",
-    "three/examples/jsm/postprocessing/OutputPass.js": "latest"
+    "three": "0.160.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
