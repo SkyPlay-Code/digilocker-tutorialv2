@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
-import { DocumentArrowUpIcon, CubeIcon } from './icons'; // Using CubeIcon as a placeholder for PDF
+import { DocumentArrowUpIcon, CubeIcon } from './icons'; // Using CubeIcon for PDF representation
 
 interface DocumentUploadModuleProps {
   scene: THREE.Scene;
@@ -8,46 +8,94 @@ interface DocumentUploadModuleProps {
   renderer: THREE.WebGLRenderer;
   onSuccess: (object3D: THREE.Object3D) => void;
   onFailure: () => void;
+  // Callbacks for CalibrationSequence interaction
+  triggerCameraRecoil: () => void;
+  panCameraToTarget: (targetPosition: THREE.Vector3 | null) => void;
+  updateEnvironmentForComet: (cometPosition: THREE.Vector3) => void;
+  triggerShockwaveEffect: () => void;
 }
 
-type ModulePhase = 
-  | 'idle' 
-  | 'awaitingFile' 
-  | 'deconstructingFileIcon' 
-  | 'streamingToCore' 
-  | 'reconstructingInCore' 
-  | 'materialized' 
+type ModulePhase =
+  | 'idle'
+  | 'awaitingFile'
+  | 'implodingIcon' // Icon flickers, glitches, absorbs light, compresses to singularity
+  | 'cometLaunch'   // Singularity erupts into a data-comet
+  | 'cometTransit'  // Comet streaks through Data Core, environment reacts
+  | 'blueprintFormation' // Comet explodes, wireframe blueprint appears
+  | 'forgingObject' // Particles weld the wireframe into a solid object
+  | 'finalizingObject' // Shockwave, molten core, embers
+  | 'materialized'  // Object fully formed and settled
   | 'error';
 
-interface ScreenParticle {
+interface ScreenParticle { // For 2D screen-space effects like light absorption
   id: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  opacity: number;
-  size: number;
-  color: string;
-  life: number;
+  x: number; y: number; // current position
+  vx: number; vy: number; // velocity
+  opacity: number; size: number; color: string;
+  life: number; // remaining life
+  startX: number; startY: number; // initial position for complex paths
+  endX: number; endY: number; // target for absorption
+  progress: number; // for interpolation
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-const DocumentUploadModule: React.FC<DocumentUploadModuleProps> = ({ scene, camera, renderer, onSuccess, onFailure }) => {
+// Helper to get a point on the screen border
+const getRandomBorderPoint = (containerWidth: number, containerHeight: number) => {
+    const side = Math.floor(Math.random() * 4);
+    switch (side) {
+        case 0: return { x: Math.random() * containerWidth, y: -20 }; // Top
+        case 1: return { x: containerWidth + 20, y: Math.random() * containerHeight }; // Right
+        case 2: return { x: Math.random() * containerWidth, y: containerHeight + 20 }; // Bottom
+        default: return { x: -20, y: Math.random() * containerHeight }; // Left
+    }
+};
+
+
+const DocumentUploadModule: React.FC<DocumentUploadModuleProps> = ({
+  scene, camera, renderer, onSuccess, onFailure,
+  triggerCameraRecoil, panCameraToTarget, updateEnvironmentForComet, triggerShockwaveEffect
+}) => {
   const [phase, setPhase] = useState<ModulePhase>('idle');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileType, setSelectedFileType] = useState<'pdf' | 'doc' | 'txt' | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [deconstructionParticles, setDeconstructionParticles] = useState<ScreenParticle[]>([]);
+  const [uiBlockInteraction, setUiBlockInteraction] = useState(false);
   
+  const [screenParticles, setScreenParticles] = useState<ScreenParticle[]>([]);
+  const [showSingularity, setShowSingularity] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const moduleContainerRef = useRef<HTMLDivElement>(null);
-  const threeDParticleSystemRef = useRef<THREE.Points | null>(null);
-  const reconstructedObjectRef = useRef<THREE.Object3D | null>(null);
+  const iconContainerRef = useRef<HTMLDivElement>(null); // For icon position
+
+  const dataCometRef = useRef<THREE.Mesh | null>(null);
+  const wireframeObjectRef = useRef<THREE.Mesh | null>(null);
+  const solidObjectRef = useRef<THREE.Mesh | null>(null);
+  const forgingParticlesRef = useRef<THREE.Points | null>(null);
+  const shockwaveMeshRef = useRef<THREE.Mesh | null>(null);
+  const emberParticlesRef = useRef<THREE.Points | null>(null);
+  const animationFrameId = useRef<number | null>(null);
 
   useEffect(() => {
     setPhase('awaitingFile');
-  }, []);
+    return () => { // Cleanup on unmount
+      if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      // Dispose all THREE objects created by this module
+      [dataCometRef, wireframeObjectRef, solidObjectRef, forgingParticlesRef, shockwaveMeshRef, emberParticlesRef].forEach(ref => {
+          if (ref.current) {
+              scene.remove(ref.current);
+              if (ref.current.geometry) ref.current.geometry.dispose();
+              if ((ref.current as THREE.Mesh).material) {
+                const mat = (ref.current as THREE.Mesh).material;
+                if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+                else mat.dispose();
+              }
+              ref.current = null;
+          }
+      });
+    };
+  }, [scene]);
 
   const getFileType = (fileName: string): 'pdf' | 'doc' | 'txt' | null => {
     const extension = fileName.split('.').pop()?.toLowerCase();
@@ -58,6 +106,7 @@ const DocumentUploadModule: React.FC<DocumentUploadModuleProps> = ({ scene, came
   };
 
   const handleFileSelectClick = () => {
+    if (uiBlockInteraction || phase !== 'awaitingFile' && phase !== 'error') return;
     fileInputRef.current?.click();
   };
 
@@ -69,9 +118,9 @@ const DocumentUploadModule: React.FC<DocumentUploadModuleProps> = ({ scene, came
         setSelectedFileName(file.name);
         setSelectedFileType(fileType);
         setFeedbackMessage(null);
-        setPhase('deconstructingFileIcon');
+        setUiBlockInteraction(true);
+        setPhase('implodingIcon');
         console.log(`File selected: ${file.name}, type: ${fileType}`);
-        console.log("Audio: SCANNING...");
       } else {
         setFeedbackMessage("Incompatible data format. Please select a .pdf, .doc(x), or .txt file.");
         setPhase('error');
@@ -80,287 +129,482 @@ const DocumentUploadModule: React.FC<DocumentUploadModuleProps> = ({ scene, came
         console.log("AI Voice: Upload failed. Incompatible data format. Please select a valid document.");
       }
     }
-    // Reset file input value to allow selecting the same file again
     if (event.target) event.target.value = '';
   };
-  
-  // Phase: deconstructingFileIcon
+
+  // Phase: implodingIcon
   useEffect(() => {
-    if (phase === 'deconstructingFileIcon' && moduleContainerRef.current) {
-      const containerRect = moduleContainerRef.current.getBoundingClientRect();
-      const centerX = containerRect.width / 2;
-      const centerY = containerRect.height / 2;
-      const numParticles = 150;
-      const newParticles: ScreenParticle[] = [];
-      for (let i = 0; i < numParticles; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 3;
-        newParticles.push({
-          id: generateId(),
-          x: centerX,
-          y: centerY,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed * 0.5 - 2, // Bias upwards then stream "into" screen
-          opacity: 1,
-          size: Math.random() * 2 + 1,
-          color: Math.random() > 0.3 ? 'rgba(0, 255, 255, 1)' : 'rgba(220, 220, 255, 1)',
-          life: 100 + Math.random() * 50,
+    if (phase === 'implodingIcon' && iconContainerRef.current && moduleContainerRef.current) {
+      console.log("Audio: DEEP CHARGING HUM (rising pitch)");
+      const iconRect = iconContainerRef.current.getBoundingClientRect();
+      const moduleRect = moduleContainerRef.current.getBoundingClientRect();
+      const targetX = iconRect.left - moduleRect.left + iconRect.width / 2;
+      const targetY = iconRect.top - moduleRect.top + iconRect.height / 2;
+
+      // Create screen particles for light absorption
+      const newScreenParticles: ScreenParticle[] = [];
+      for (let i = 0; i < 50; i++) {
+        const startPos = getRandomBorderPoint(moduleRect.width, moduleRect.height);
+        newScreenParticles.push({
+          id: generateId(), x: startPos.x, y: startPos.y,
+          vx:0, vy:0, // Will be interpolated
+          opacity: 0, size: Math.random() * 2 + 1,
+          color: Math.random() > 0.3 ? 'rgba(0, 255, 255, 0.7)' : 'rgba(200, 200, 255, 0.6)',
+          life: 100, startX: startPos.x, startY: startPos.y, endX: targetX, endY: targetY, progress: 0,
         });
       }
-      setDeconstructionParticles(newParticles);
-
+      setScreenParticles(newScreenParticles);
+      
+      // Icon compresses after a short delay for glitching
       setTimeout(() => {
-        console.log("Audio: WHOOSH (Deconstruction Particles Firing)");
-        setPhase('streamingToCore');
-      }, 500); // Short delay after particle creation before "whoosh"
-      
-      const deconstructionTimer = setTimeout(() => {
-         // Particles will fade out on their own. Main goal is to trigger next phase.
-      }, 2000); // Total deconstruction duration
-      return () => clearTimeout(deconstructionTimer);
-    }
-  }, [phase]);
+        setShowSingularity(true); // Triggers CSS animation for compression
+      }, 300); // Glitch time
 
-  // Particle animation for deconstruction
+      // After compression animation (0.7s defined in CSS) + small buffer
+      setTimeout(() => {
+        console.log("Audio: Sharp CRACK (Singularity formed)");
+        triggerCameraRecoil();
+        setShowSingularity(false); // Hide the 2D singularity dot
+        setScreenParticles([]); // Clear absorption particles
+        if(iconContainerRef.current) iconContainerRef.current.style.opacity = '0'; // Hide original icon
+        
+        console.log("Audio: Moment of SILENCE");
+        setTimeout(() => {
+          setPhase('cometLaunch');
+        }, 100); // Brief silence
+      }, 300 + 700 + 50); 
+    }
+  }, [phase, triggerCameraRecoil]);
+
+  // Screen particle animation (for absorption)
   useEffect(() => {
-    if (phase === 'deconstructingFileIcon' || deconstructionParticles.length > 0) {
-      const animFrame = requestAnimationFrame(() => {
-        setDeconstructionParticles(prevParticles =>
-          prevParticles
-            .map(p => ({
+    if (phase === 'implodingIcon' && screenParticles.length > 0) {
+      const animLogic = () => {
+        setScreenParticles(prev =>
+          prev.map(p => {
+            const newProgress = Math.min(1, p.progress + 0.03); // Speed of absorption
+            return {
               ...p,
-              x: p.x + p.vx,
-              y: p.y + p.vy,
-              opacity: Math.max(0, p.opacity - 0.02),
+              progress: newProgress,
+              x: THREE.MathUtils.lerp(p.startX, p.endX, newProgress),
+              y: THREE.MathUtils.lerp(p.startY, p.endY, newProgress),
+              opacity: THREE.MathUtils.lerp(0.8, 0, newProgress) + (1-newProgress)*0.1, // Fade in then mostly out
               life: p.life -1,
-            }))
-            .filter(p => p.opacity > 0 && p.life > 0)
+            };
+          }).filter(p => p.life > 0 && p.progress < 1)
         );
-      });
-      return () => cancelAnimationFrame(animFrame);
+      };
+      animationFrameId.current = requestAnimationFrame(animLogic);
+      return () => { if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current); };
+    } else {
+        setScreenParticles([]); // Ensure cleared if phase changes
     }
-  }, [deconstructionParticles, phase]);
+  }, [screenParticles, phase]);
 
 
-  // Phase: streamingToCore (3D particle stream)
+  // Phase: cometLaunch & cometTransit
   useEffect(() => {
-    if (phase === 'streamingToCore') {
-      console.log("Audio: SWIRLING ENERGY (Particles arriving in 3D Core)");
-      const particleCount = 500;
-      const positions = new Float32Array(particleCount * 3);
-      const geometry = new THREE.BufferGeometry();
+    if (phase === 'cometLaunch') {
+      console.log("Audio: CANNON BOOM (Concussive, with echo)");
+      panCameraToTarget(new THREE.Vector3(0,0,-20)); // Aim camera towards where comet will go
+
+      const cometGeometry = new THREE.SphereGeometry(0.3, 16, 16); // Small, bright core
+      const cometMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+      const comet = new THREE.Mesh(cometGeometry, cometMaterial);
       
-      for (let i = 0; i < particleCount; i++) {
-        positions[i * 3 + 0] = (Math.random() - 0.5) * 5;  // x
-        positions[i * 3 + 1] = (Math.random() - 0.5) * 5;  // y
-        positions[i * 3 + 2] = -50 - Math.random() * 20; // z (start far away)
-      }
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const material = new THREE.PointsMaterial({
-        color: 0x00FFFF,
-        size: 0.15,
-        transparent: true,
-        opacity: 0.8,
-        blending: THREE.AdditiveBlending,
-      });
-      const particleSystem = new THREE.Points(geometry, material);
-      threeDParticleSystemRef.current = particleSystem;
-      scene.add(particleSystem);
+      // Add a tail using THREE.Points or a custom shader. For simplicity, we'll use a PointLight as a simple bright core.
+      const pointLight = new THREE.PointLight(0x00ffff, 5, 50, 1.5); // color, intensity, distance, decay
+      comet.add(pointLight);
 
-      let startTime = Date.now();
-      const animationDuration = 1500; // 1.5 seconds
+      // Start near camera, slightly off-center if desired
+      const startPos = new THREE.Vector3(
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2,
+        camera.position.z + camera.near + 1 // Start in front of camera near plane
+      );
+      // Convert to world space if camera is not at origin or rotated significantly
+      // For simplicity here, assuming camera is mostly forward-facing from origin for calibration module
+      comet.position.copy(startPos);
 
-      const animateStream = () => {
+
+      scene.add(comet);
+      dataCometRef.current = comet;
+      setPhase('cometTransit');
+    }
+
+    if (phase === 'cometTransit' && dataCometRef.current) {
+      const comet = dataCometRef.current;
+      const targetPosition = new THREE.Vector3(0, 0, -25); // Central point in Data Core
+      const duration = 1.5 * 1000; // 1.5 seconds transit
+      const startTime = Date.now();
+
+      const animateComet = () => {
         const elapsedTime = Date.now() - startTime;
-        const progress = Math.min(elapsedTime / animationDuration, 1);
-
-        if (threeDParticleSystemRef.current) {
-          const currentPositions = threeDParticleSystemRef.current.geometry.attributes.position.array as Float32Array;
-          for (let i = 0; i < particleCount; i++) {
-            // Move particles towards origin (0,0,0)
-            const initialZ = -50 - Math.random() * 20; // Re-fetch or store initial if complex path needed
-            currentPositions[i * 3 + 2] = THREE.MathUtils.lerp(initialZ, 0, progress); // Lerp Z
-             // Optional: Add swirling or pathing for X, Y
-            currentPositions[i * 3 + 0] *= (1 - progress * 0.1); // Converge X slightly
-            currentPositions[i * 3 + 1] *= (1 - progress * 0.1); // Converge Y slightly
-          }
-          threeDParticleSystemRef.current.geometry.attributes.position.needsUpdate = true;
-          (threeDParticleSystemRef.current.material as THREE.PointsMaterial).opacity = 0.8 * (1 - progress * 0.5); // Fade slightly as they converge
-        }
+        const progress = Math.min(elapsedTime / duration, 1);
+        
+        comet.position.lerpVectors(comet.position, targetPosition, progress * 0.1); // Ease towards target
+        updateEnvironmentForComet(comet.position);
 
         if (progress < 1) {
-          requestAnimationFrame(animateStream);
+          animationFrameId.current = requestAnimationFrame(animateComet);
         } else {
-          setPhase('reconstructingInCore');
+          setPhase('blueprintFormation');
         }
       };
-      animateStream();
-
-      return () => { // Cleanup 3D particles if component unmounts or phase changes prematurely
-        if (threeDParticleSystemRef.current) {
-          scene.remove(threeDParticleSystemRef.current);
-          threeDParticleSystemRef.current.geometry.dispose();
-          (threeDParticleSystemRef.current.material as THREE.Material).dispose();
-          threeDParticleSystemRef.current = null;
-        }
-      };
+      animateComet();
+      return () => { if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current); };
     }
-  }, [phase, scene]);
+  }, [phase, scene, camera, panCameraToTarget, updateEnvironmentForComet]);
 
-  // Phase: reconstructingInCore
+
+  // Phase: blueprintFormation, forgingObject, finalizingObject
   useEffect(() => {
-    if (phase === 'reconstructingInCore' && selectedFileType) {
-       // Clean up the 3D particle stream from previous phase
-      if (threeDParticleSystemRef.current) {
-        scene.remove(threeDParticleSystemRef.current);
-        threeDParticleSystemRef.current.geometry.dispose();
-        (threeDParticleSystemRef.current.material as THREE.Material).dispose();
-        threeDParticleSystemRef.current = null;
-      }
-
-      console.log("Audio: SOLIDIFYING CHUNK/FORM (Object reconstruction)");
-      let geometry: THREE.BufferGeometry;
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x00BFFF,
-        emissive: 0x0088AA,
-        transparent: true,
-        opacity: 0.85,
-        roughness: 0.3,
-        metalness: 0.1,
-      });
-
-      switch (selectedFileType) {
-        case 'pdf':
-          geometry = new THREE.BoxGeometry(2, 2, 2);
-          break;
-        case 'doc': // Scroll: represented by a slightly flattened cylinder
-          geometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 16);
-          geometry.rotateX(Math.PI / 2); // Lay it flat
-          geometry.scale(1, 1, 0.7); // Flatten it a bit
-          break;
-        case 'txt': // Data Slate: thin box
-          geometry = new THREE.BoxGeometry(2, 3, 0.2);
-          break;
-        default:
-          geometry = new THREE.SphereGeometry(1, 16, 16); // Fallback
+    // Blueprint Formation
+    if (phase === 'blueprintFormation' && selectedFileType) {
+      console.log("Audio: SILENT FLASH, then humming potential (Blueprint forming)");
+      if (dataCometRef.current) { // Comet "explodes"
+        scene.remove(dataCometRef.current);
+        dataCometRef.current.geometry.dispose();
+        (dataCometRef.current.material as THREE.Material).dispose();
+        dataCometRef.current = null;
       }
       
-      const object = new THREE.Mesh(geometry, material);
-      object.scale.set(0.01, 0.01, 0.01); // Start small
-      scene.add(object);
-      reconstructedObjectRef.current = object;
+      // Create a flash effect (e.g., rapidly expanding sprite or light)
+      const flashMaterial = new THREE.SpriteMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, fog: false });
+      const flashSprite = new THREE.Sprite(flashMaterial);
+      flashSprite.position.set(0,0,-25); // Where comet ended
+      flashSprite.scale.set(0.1, 0.1, 0.1);
+      scene.add(flashSprite);
+      let flashStart = Date.now();
+      const flashAnim = () => {
+          const elapsed = Date.now() - flashStart;
+          if(elapsed < 200){ // 0.2 sec flash
+              const p = elapsed / 200;
+              flashSprite.scale.set(p*20, p*20, 1);
+              flashSprite.material.opacity = 0.9 * (1-p);
+              requestAnimationFrame(flashAnim);
+          } else {
+              scene.remove(flashSprite);
+              flashSprite.material.dispose();
+          }
+      };
+      flashAnim();
 
-      let startTime = Date.now();
-      const animationDuration = 2000; // 2 seconds
 
-      const animateReconstruction = () => {
+      let geometry: THREE.BufferGeometry;
+      switch (selectedFileType) {
+        case 'pdf': geometry = new THREE.BoxGeometry(2, 2, 2); break;
+        case 'doc': geometry = new THREE.CylinderGeometry(0.5, 0.5, 3, 16); geometry.rotateX(Math.PI / 2); geometry.scale(1,1,0.7); break;
+        case 'txt': geometry = new THREE.BoxGeometry(2, 3, 0.2); break;
+        default: geometry = new THREE.SphereGeometry(1, 16, 16);
+      }
+      
+      const wireframeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.7 });
+      const wireframe = new THREE.Mesh(geometry.clone(), wireframeMaterial); // Use clone for wireframe
+      wireframe.position.set(0, 0, -25); // Position in Data Core
+      wireframe.rotation.y = Math.random() * Math.PI;
+      scene.add(wireframe);
+      wireframeObjectRef.current = wireframe;
+
+      // Solid object (initially invisible)
+      const solidMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00BFFF, emissive: 0x003366, transparent: true, opacity: 0,
+        roughness: 0.4, metalness: 0.2, side: THREE.DoubleSide
+      });
+      const solid = new THREE.Mesh(geometry, solidMaterial); // Use original geometry
+      solid.position.copy(wireframe.position);
+      solid.rotation.copy(wireframe.rotation);
+      scene.add(solid);
+      solidObjectRef.current = solid;
+
+      // Forging particles (remnants of comet explosion)
+      const particleCount = 200;
+      const particlePositions = new Float32Array(particleCount * 3);
+      const particleColors = new Float32Array(particleCount * 3);
+      const particleAlphas = new Float32Array(particleCount);
+      const color = new THREE.Color();
+      for (let i = 0; i < particleCount; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const radius = 3 + Math.random() * 3; // Spread around blueprint
+        particlePositions[i*3+0] = wireframe.position.x + radius * Math.sin(phi) * Math.cos(theta);
+        particlePositions[i*3+1] = wireframe.position.y + radius * Math.sin(phi) * Math.sin(theta);
+        particlePositions[i*3+2] = wireframe.position.z + radius * Math.cos(phi);
+        color.setHSL(0.5 + Math.random()*0.1, 0.8, 0.6); // Cyan-ish
+        particleColors[i*3+0] = color.r; particleColors[i*3+1] = color.g; particleColors[i*3+2] = color.b;
+        particleAlphas[i] = 1.0;
+      }
+      const pGeom = new THREE.BufferGeometry();
+      pGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      pGeom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+      pGeom.setAttribute('alpha', new THREE.BufferAttribute(particleAlphas, 1)); // Custom attribute for alpha
+      
+      // Custom shader material for forging particles
+      const pMaterial = new THREE.ShaderMaterial({
+          uniforms: { pointTexture: { value: new THREE.TextureLoader().load('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==') } }, // simple white circle
+          vertexShader: `
+              attribute float alpha;
+              varying float vAlpha;
+              varying vec3 vColor;
+              attribute vec3 color;
+              void main() {
+                  vAlpha = alpha;
+                  vColor = color;
+                  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                  gl_PointSize = (20.0 / -mvPosition.z) * (vAlpha + 0.1); // Size attenuation + alpha influence
+                  gl_Position = projectionMatrix * mvPosition;
+              }`,
+          fragmentShader: `
+              uniform sampler2D pointTexture;
+              varying float vAlpha;
+              varying vec3 vColor;
+              void main() {
+                  if (vAlpha <= 0.0) discard;
+                  gl_FragColor = vec4(vColor, vAlpha) * texture2D(pointTexture, gl_PointCoord);
+              }`,
+          transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true
+      });
+
+      const particles = new THREE.Points(pGeom, pMaterial);
+      forgingParticlesRef.current = particles;
+      scene.add(particles);
+
+      setTimeout(() => setPhase('forgingObject'), 500); // Delay before forging starts
+    }
+
+    // Forging Object
+    if (phase === 'forgingObject' && wireframeObjectRef.current && solidObjectRef.current && forgingParticlesRef.current) {
+      console.log("Audio: High-frequency WELDING/SIZZLING");
+      const wireframe = wireframeObjectRef.current;
+      const solid = solidObjectRef.current;
+      const particles = forgingParticlesRef.current;
+      const particlePositions = particles.geometry.attributes.position.array as Float32Array;
+      const particleAlphas = particles.geometry.attributes.alpha.array as Float32Array;
+      
+      const duration = 2.0 * 1000; // 2 seconds forging
+      const startTime = Date.now();
+      const initialParticlePositions = new Float32Array(particlePositions); // Store initial positions for lerping
+
+      const animateForging = () => {
         const elapsedTime = Date.now() - startTime;
-        const progress = Math.min(elapsedTime / animationDuration, 1);
+        const progress = Math.min(elapsedTime / duration, 1);
         const easedProgress = 1 - Math.pow(1 - progress, 3); // easeOutCubic
 
-        if (reconstructedObjectRef.current) {
-          const meshObject = reconstructedObjectRef.current as THREE.Mesh; // Cast to Mesh
-          meshObject.scale.set(easedProgress, easedProgress, easedProgress);
-          (meshObject.material as THREE.MeshStandardMaterial).opacity = 0.85 * easedProgress;
+        (wireframe.material as THREE.MeshBasicMaterial).opacity = 0.7 * (1 - easedProgress);
+        (solid.material as THREE.MeshStandardMaterial).opacity = easedProgress * 0.9; // Solid becomes visible
+
+        // Particles converge onto the solid object's surface (simplified to center)
+        for (let i = 0; i < particleAlphas.length; i++) {
+          particlePositions[i*3+0] = THREE.MathUtils.lerp(initialParticlePositions[i*3+0], solid.position.x, easedProgress);
+          particlePositions[i*3+1] = THREE.MathUtils.lerp(initialParticlePositions[i*3+1], solid.position.y, easedProgress);
+          particlePositions[i*3+2] = THREE.MathUtils.lerp(initialParticlePositions[i*3+2], solid.position.z, easedProgress);
+          particleAlphas[i] = 1.0 * (1 - easedProgress * 0.95); // Fade out as they reach
         }
+        particles.geometry.attributes.position.needsUpdate = true;
+        particles.geometry.attributes.alpha.needsUpdate = true;
 
         if (progress < 1) {
-          requestAnimationFrame(animateReconstruction);
+          animationFrameId.current = requestAnimationFrame(animateForging);
         } else {
-          setPhase('materialized');
-          if (reconstructedObjectRef.current) {
-            // Pulse animation
-             const originalScale = reconstructedObjectRef.current.scale.clone();
-             reconstructedObjectRef.current.scale.multiplyScalar(1.2);
-             setTimeout(() => {
-                reconstructedObjectRef.current?.scale.copy(originalScale);
-             }, 200);
-            onSuccess(reconstructedObjectRef.current);
-          }
+          scene.remove(wireframe); wireframe.geometry.dispose(); (wireframe.material as THREE.Material).dispose(); wireframeObjectRef.current = null;
+          scene.remove(particles); particles.geometry.dispose(); (particles.material as THREE.Material).dispose(); forgingParticlesRef.current = null;
+          setPhase('finalizingObject');
         }
       };
-      animateReconstruction();
+      animateForging();
+      return () => { if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current); };
     }
-  }, [phase, selectedFileType, scene, onSuccess]);
 
-  const renderFileIconForDeconstruction = () => {
+    // Finalizing Object (Shockwave, Embers)
+    if (phase === 'finalizingObject' && solidObjectRef.current) {
+      console.log("Audio: Resonant METALLIC CLANG, then deep fading HUM (Shockwave)");
+      const solid = solidObjectRef.current;
+      triggerShockwaveEffect(); // Notify CalibrationSequence for potential post-proc
+
+      // Create 3D shockwave mesh
+      const shockwaveGeom = new THREE.RingGeometry(0.1, 0.2, 64); // innerRadius, outerRadius, segments
+      const shockwaveMat = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide 
+      });
+      const shockwave = new THREE.Mesh(shockwaveGeom, shockwaveMat);
+      shockwave.position.copy(solid.position);
+      shockwave.lookAt(camera.position); // Orient towards camera
+      scene.add(shockwave);
+      shockwaveMeshRef.current = shockwave;
+      
+      // Molten core effect (simple emissive pulse)
+      const mat = solid.material as THREE.MeshStandardMaterial;
+      mat.emissive.setHex(0x00ffff); // Bright cyan emissive
+      mat.emissiveIntensity = 1.5;
+      
+      // Embers
+      const emberCount = 50;
+      const emberPositions = new Float32Array(emberCount * 3);
+      const emberVelocities = new Float32Array(emberCount * 3); // For movement
+      const emberLifes = new Float32Array(emberCount);
+      const baseColor = new THREE.Color(0xffaa33); // Orange-yellow
+      const emberColors = new Float32Array(emberCount * 3);
+
+      for (let i = 0; i < emberCount; i++) {
+          // Start on surface of the object (approximate for now)
+          emberPositions[i * 3 + 0] = solid.position.x + (Math.random() - 0.5) * 2;
+          emberPositions[i * 3 + 1] = solid.position.y + (Math.random() - 0.5) * 2;
+          emberPositions[i * 3 + 2] = solid.position.z + (Math.random() - 0.5) * 2;
+          emberVelocities[i * 3 + 0] = (Math.random() - 0.5) * 0.03;
+          emberVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.03;
+          emberVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.03;
+          emberLifes[i] = 0.5 + Math.random() * 1.0; // 0.5 to 1.5 seconds life
+          
+          const c = baseColor.clone().offsetHSL(0, (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.2);
+          emberColors[i*3+0] = c.r; emberColors[i*3+1] = c.g; emberColors[i*3+2] = c.b;
+      }
+      const emberGeom = new THREE.BufferGeometry();
+      emberGeom.setAttribute('position', new THREE.BufferAttribute(emberPositions, 3));
+      emberGeom.setAttribute('velocity', new THREE.BufferAttribute(emberVelocities, 3));
+      emberGeom.setAttribute('life', new THREE.BufferAttribute(emberLifes, 1));
+      emberGeom.setAttribute('color', new THREE.BufferAttribute(emberColors, 3));
+
+      const emberMaterial = new THREE.PointsMaterial({ size: 0.05, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+      const embers = new THREE.Points(emberGeom, emberMaterial);
+      emberParticlesRef.current = embers;
+      scene.add(embers);
+
+      const duration = 2.5 * 1000; // Total finalizing duration
+      const startTime = Date.now();
+
+      const animateFinalizing = () => {
+        const elapsedTime = Date.now() - startTime;
+        const progress = Math.min(elapsedTime / duration, 1);
+
+        // Shockwave animation
+        if (shockwaveMeshRef.current) {
+          const sw = shockwaveMeshRef.current;
+          const swProgress = Math.min(elapsedTime / (duration * 0.4), 1); // Shockwave faster
+          sw.scale.setScalar(1 + swProgress * 30); // Expands up to 30x size
+          (sw.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - swProgress);
+          if (swProgress >= 1) { scene.remove(sw); sw.geometry.dispose(); (sw.material as THREE.Material).dispose(); shockwaveMeshRef.current = null; }
+        }
+
+        // Embers animation
+        if (emberParticlesRef.current) {
+            const positions = emberParticlesRef.current.geometry.attributes.position.array as Float32Array;
+            const velocities = emberParticlesRef.current.geometry.attributes.velocity.array as Float32Array;
+            const lifes = emberParticlesRef.current.geometry.attributes.life.array as Float32Array;
+            let activeEmbers = 0;
+            for (let i = 0; i < emberCount; i++) {
+                lifes[i] -= 0.016; // Approx 1/60th of a second
+                if (lifes[i] > 0) {
+                    activeEmbers++;
+                    positions[i * 3 + 0] += velocities[i * 3 + 0];
+                    positions[i * 3 + 1] += velocities[i * 3 + 1];
+                    positions[i * 3 + 2] += velocities[i * 3 + 2];
+                    velocities[i * 3 + 1] -= 0.0005; // Gravity on embers
+                }
+            }
+            emberParticlesRef.current.geometry.attributes.position.needsUpdate = true;
+            emberParticlesRef.current.geometry.attributes.life.needsUpdate = true; // For potential shader use
+            (emberParticlesRef.current.material as THREE.PointsMaterial).opacity = 0.9 * Math.max(0, (1 - progress * 0.8)); // Fade all embers over time
+
+            if (activeEmbers === 0 && progress > 0.5) { // Ensure embers had time to live
+                scene.remove(emberParticlesRef.current);
+                emberParticlesRef.current.geometry.dispose();
+                (emberParticlesRef.current.material as THREE.PointsMaterial).dispose();
+                emberParticlesRef.current = null;
+            }
+        }
+        
+        // Molten core cools down
+        mat.emissiveIntensity = 1.5 * (1 - progress);
+
+        if (progress < 1) {
+          animationFrameId.current = requestAnimationFrame(animateFinalizing);
+        } else {
+          setPhase('materialized');
+        }
+      };
+      animateFinalizing();
+      return () => { if(animationFrameId.current) cancelAnimationFrame(animationFrameId.current); };
+    }
+    
+    // Materialized
+    if (phase === 'materialized' && solidObjectRef.current) {
+      console.log("AI Voice: Data-construct received and materialized.");
+      onSuccess(solidObjectRef.current); // Pass the final solid object
+      panCameraToTarget(null); // Reset camera pan
+      setUiBlockInteraction(false);
+    }
+
+  }, [phase, selectedFileType, scene, camera, onSuccess, triggerShockwaveEffect, panCameraToTarget]);
+
+
+  const renderFileIconForImplosion = () => {
     if (!selectedFileType) return null;
     let iconContent;
     switch (selectedFileType) {
         case 'pdf': iconContent = <CubeIcon className="w-16 h-16 text-cyan-300" />; break;
-        case 'doc': iconContent = <span className="text-4xl text-cyan-300 font-bold">[DOC]</span>; break; // Placeholder
-        case 'txt': iconContent = <span className="text-4xl text-cyan-300 font-bold">[TXT]</span>; break; // Placeholder
+        case 'doc': iconContent = <span className="text-4xl text-cyan-300 font-bold">[DOC]</span>; break;
+        case 'txt': iconContent = <span className="text-4xl text-cyan-300 font-bold">[TXT]</span>; break;
         default: return null;
     }
     return (
-        <div className="absolute inset-0 flex items-center justify-center animate-fadeIn">
+        <div ref={iconContainerRef} className={`absolute inset-0 flex items-center justify-center 
+            ${phase === 'implodingIcon' ? 'animate-icon-glitch' : ''}
+            ${showSingularity ? 'animate-icon-compress' : ''}
+            transition-opacity duration-200`}
+            style={{opacity: (phase === 'awaitingFile' || phase === 'error' || phase === 'idle') ? 0 : 1 }}
+        >
             {iconContent}
         </div>
     );
   };
 
   return (
-    <div ref={moduleContainerRef} className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto">
-      {phase === 'awaitingFile' && (
+    <div ref={moduleContainerRef} className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto overflow-hidden">
+      {/* File Select Button */}
+      {(phase === 'awaitingFile' || phase === 'error') && !uiBlockInteraction && (
         <>
           <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".pdf,.doc,.docx,.txt" />
           <button
             onClick={handleFileSelectClick}
             className={`relative w-72 h-16 border font-exo2-regular text-lg text-white
                         rounded-full flex items-center justify-center overflow-hidden group
-                        transition-all duration-300 ease-in-out
-                        focus:outline-none bg-cyan-500/10 border-cyan-500 hover:bg-cyan-500/30 hover:border-cyan-300 hover:shadow-[0_0_15px_rgba(0,191,255,0.5)]
+                        transition-all duration-300 ease-in-out focus:outline-none 
+                        ${phase === 'error' ? 'bg-red-500/30 border-red-500 hover:bg-red-500/50 hover:border-red-300 animate-pulse' 
+                                            : 'bg-cyan-500/10 border-cyan-500 hover:bg-cyan-500/30 hover:border-cyan-300 hover:shadow-[0_0_15px_rgba(0,191,255,0.5)]'}
                         animate-fadeIn`}
             style={{ animationDelay: '0.5s' }}
           >
-            <div className={`absolute inset-0 data-stream-button-shimmer group-hover:animate-data-stream-shimmer`}
-                 style={{animationPlayState: 'paused'}} // Control shimmer if desired
-            ></div>
-             <DocumentArrowUpIcon className="w-6 h-6 mr-3"/>
+            <DocumentArrowUpIcon className="w-6 h-6 mr-3"/>
             <span className="relative z-10">SELECT FILE</span>
           </button>
           {feedbackMessage && <p className="mt-4 text-red-400 text-sm animate-fadeIn">{feedbackMessage}</p>}
         </>
       )}
 
-      {phase === 'deconstructingFileIcon' && (
-         <div className="w-32 h-32 relative"> {/* Container for icon and particles */}
-            {renderFileIconForDeconstruction()}
-        </div>
-      )}
-      
-      {/* 2D Deconstruction Particles */}
-      {(phase === 'deconstructingFileIcon' || deconstructionParticles.length > 0) && deconstructionParticles.map(p => (
+      {/* Icon Display Area for Implosion (managed by renderFileIconForImplosion) */}
+      <div className="w-32 h-32 relative pointer-events-none">
+         {renderFileIconForImplosion()}
+      </div>
+
+      {/* 2D Screen Particles for light absorption */}
+      {screenParticles.map(p => (
         <div
           key={p.id}
           className="absolute rounded-full"
           style={{
-            left: p.x,
-            top: p.y,
-            width: p.size,
-            height: p.size,
-            backgroundColor: p.color,
-            opacity: p.opacity,
+            left: p.x, top: p.y, width: p.size, height: p.size,
+            backgroundColor: p.color, opacity: p.opacity,
             transform: 'translate(-50%, -50%)',
-            transition: 'opacity 0.1s linear', // For fading
           }}
         />
       ))}
-
-      {phase === 'error' && (
-        <>
-          <button
-            onClick={handleFileSelectClick} // Allow re-selection
-            className={`relative w-72 h-16 border font-exo2-regular text-lg text-white
-                        rounded-full flex items-center justify-center overflow-hidden group
-                        transition-all duration-300 ease-in-out
-                        focus:outline-none bg-red-500/30 border-red-500 hover:bg-red-500/50 hover:border-red-300 animate-pulse`}
-          >
-            <DocumentArrowUpIcon className="w-6 h-6 mr-3"/>
-            <span className="relative z-10">SELECT FILE</span>
-          </button>
-          {feedbackMessage && <p className="mt-4 text-red-400 text-sm">{feedbackMessage}</p>}
-        </>
+      
+      {/* UI Shockwave overlay as a simple div animation for dramatic screen effect */}
+      {phase === 'finalizingObject' && (
+        <div 
+            className="absolute inset-0 border-2 border-cyan-300 rounded-full animate-ui-shockwave-pulse pointer-events-none"
+            style={{ transformOrigin: 'center center' }}
+        ></div>
       )}
 
     </div>

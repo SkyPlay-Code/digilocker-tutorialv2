@@ -207,6 +207,33 @@
       /* animation will be controlled by style prop for stroke-dashoffset */
     }
 
+    /* Particle Inflow for DocumentUploadModule */
+    .particle-inflow-source {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background-color: #00ffff; /* Cyan */
+      border-radius: 50%;
+      opacity: 0;
+      animation: particle-inflow-anim var(--particle-duration, 1s) linear var(--particle-delay, 0s) forwards;
+      box-shadow: 0 0 3px #00ffff, 0 0 5px #00ffff;
+    }
+
+    @keyframes particle-inflow-anim {
+      0% {
+        transform: translate(var(--particle-start-x), var(--particle-start-y)) scale(1);
+        opacity: 0.8;
+      }
+      80% {
+         opacity: 1;
+      }
+      100% {
+        transform: translate(var(--particle-end-x), var(--particle-end-y)) scale(0.2);
+        opacity: 0;
+      }
+    }
+
+
   </style>
   <script>
     tailwind.config = {
@@ -257,6 +284,11 @@
             'sigil-glitch': 'sigil-glitch-effect-anim 0.5s linear infinite',
             'sigil-feedback-text': 'sigil-feedback-text-materialize-anim 0.5s ease-out forwards',
             'sigil-dissolve': 'fadeIn 0.5s ease-out reverse forwards', /* Using fadeIn reversed for dissolve */
+            // Document Upload Module Animations
+            'icon-glitch': 'icon-glitch-anim 0.5s linear infinite alternate',
+            'icon-compress': 'icon-compress-anim 0.7s ease-in forwards',
+            'ui-shockwave-pulse': 'ui-shockwave-pulse-anim 0.6s ease-out forwards',
+
 
           },
           keyframes: {
@@ -427,6 +459,24 @@
                 '0%': { opacity: 0, transform: 'scale(0.8) translateY(10px)' },
                 '100%': { opacity: 1, transform: 'scale(1) translateY(0px)' },
             },
+            // Document Upload Keyframes
+            'icon-glitch-anim': {
+              '0%': { transform: 'translate(0,0) skew(0)', opacity: 1 },
+              '10%': { transform: 'translate(-2px, 1px) skew(-2deg, 1deg)', opacity: 0.7 },
+              '20%': { transform: 'translate(1px, -1px) skew(1deg, -2deg)', opacity: 1 },
+              '30%': { transform: 'translate(0,0) skew(0)', opacity: 0.5, filter: 'brightness(2)'},
+              '100%': { transform: 'translate(0,0) skew(0)', opacity: 1 },
+            },
+            'icon-compress-anim': {
+              '0%': { transform: 'scale(1)', opacity: 1, filter: 'brightness(1) drop-shadow(0 0 5px #00ffff)' },
+              '70%': { transform: 'scale(0.05)', opacity: 0.8, filter: 'brightness(10) drop-shadow(0 0 15px #ffffff)' },
+              '100%': { transform: 'scale(0)', opacity: 0, filter: 'brightness(20) drop-shadow(0 0 20px #ffffff)' },
+            },
+            'ui-shockwave-pulse-anim': {
+              '0%': { transform: 'scale(0.1)', opacity: 0 },
+              '30%': { transform: 'scale(1)', opacity: 0.7, borderWidth: '15px', borderColor: 'rgba(0, 255, 255, 0.5)'},
+              '100%': { transform: 'scale(20)', opacity: 0, borderWidth: '1px', borderColor: 'rgba(0, 255, 255, 0)' },
+            }
           },
           colors: {
             cyan: {

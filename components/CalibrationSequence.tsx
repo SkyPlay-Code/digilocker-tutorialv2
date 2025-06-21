@@ -7,7 +7,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { CalibrationModule as CalibrationModuleEnum } from '../types'; 
 import { LogoIcon } from './icons'; 
 import AuthenticationSigil from './AuthenticationSigil';
-import DocumentUploadModule from './DocumentUploadModule'; // New Module
+import DocumentUploadModule from './DocumentUploadModule';
 
 interface CalibrationSequenceProps {
   onClose: () => void;
@@ -58,7 +58,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    const camera = new THREE.PerspectiveCamera(60, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000); // Default FOV 75
     camera.position.set(0, 0, 0.1); 
     cameraRef.current = camera;
 
@@ -131,8 +131,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       animationFrameIdRef.current = requestAnimationFrame(animate);
       if(!cameraRef.current || !composerRef.current || !dataCometsRef.current) return;
 
-      cameraRef.current.rotation.y += (mousePosRef.current.x * 0.1 - cameraRef.current.rotation.y) * 0.05;
-      cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.1 - cameraRef.current.rotation.x) * 0.05;
+      cameraRef.current.rotation.y += (mousePosRef.current.x * 0.05 - cameraRef.current.rotation.y) * 0.05; // Adjusted mouse influence
+      cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.05 - cameraRef.current.rotation.x) * 0.05; // Adjusted mouse influence
+
 
       const cometPositions = dataCometsRef.current.geometry.attributes.position.array as Float32Array;
       const cometVelocities = dataCometsRef.current.geometry.attributes.velocity.array as Float32Array;
@@ -148,8 +149,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       gridsRef.current.forEach(g => g.rotation.y += 0.0001); 
 
       materializedObjects.forEach(obj => {
-        obj.rotation.y += 0.005;
-        obj.rotation.x += 0.002;
+        obj.rotation.y += 0.003; // Slightly slower base rotation
+        obj.rotation.x += 0.001;
+        obj.rotation.z += 0.0005;
       });
       
       composerRef.current.render(clockRef.current.getDelta());
@@ -168,7 +170,6 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     setTimeout(() => {
       setHudBooted(true);
       console.log("AI Voice: Calibration sequence initiated. Welcome.");
-      // Jump logic or default start
        const initialModule = jumpToModule ?? CalibrationModuleEnum.Authentication;
         setCurrentLoadedModule(initialModule);
 
@@ -176,12 +177,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
             console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
         } else if (initialModule === CalibrationModuleEnum.DocumentUpload) {
-             // If jumping directly to DocumentUpload, set progress accordingly
             setSyncProgress(15); 
-            setCurrentObjectiveText("CURRENT OBJECTIVE: Upload Primary Data-Construct");
+            setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
             console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
         }
-        // Add more else if for other modules if direct jump is supported
     }, 500);
 
     return () => {
@@ -206,17 +205,23 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       }
       console.log("CalibrationSequence: Data Core scene cleaned up.");
     };
-  }, [jumpToModule, materializedObjects]); // Added materializedObjects to re-run effect if it changes (and scene, camera, renderer refs are stable)
+  }, [jumpToModule]); // materializedObjects removed from deps for now, managed by its own effect
 
-  // Module Progression Logic
-  useEffect(() => {
-    if (currentLoadedModule === CalibrationModuleEnum.DocumentUpload && syncProgress < 15) {
-        // This case implies direct jump or an issue. For now, assume auth was completed.
-        // If auth wasn't completed, syncProgress should be 0.
-        // This log helps catch unexpected states.
-        console.warn("DocumentUpload module loaded with syncProgress < 15%. Ensure Authentication module completed or handled jump correctly.");
-    }
-  }, [currentLoadedModule, syncProgress]);
+  // Handle materialized object updates separately
+    useEffect(() => {
+        materializedObjects.forEach(obj => {
+            if (obj && !sceneRef.current?.children.includes(obj)) {
+                sceneRef.current?.add(obj);
+            }
+        });
+        // Cleanup: remove objects from scene if they are removed from materializedObjects state
+        return () => {
+            materializedObjects.forEach(obj => {
+                sceneRef.current?.remove(obj);
+                // Consider disposing geometry/material if objects are permanently removed and not reused
+            });
+        };
+    }, [materializedObjects]);
 
 
   const handleAuthenticationSuccess = useCallback(() => {
@@ -226,7 +231,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log("AI Voice: Signature Verified. Module 01 complete.");
     setTimeout(() => {
         setCurrentLoadedModule(CalibrationModuleEnum.DocumentUpload);
-        setCurrentObjectiveText("CURRENT OBJECTIVE: Upload Primary Data-Construct");
+        setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
         console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
     }, 1500);
   }, []);
@@ -237,23 +242,82 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   const handleDocumentUploadSuccess = useCallback((newObject: THREE.Object3D) => {
     console.log("Document Materialization successful!");
-    setMaterializedObjects(prev => [...prev, newObject]); // Add to scene
+    setMaterializedObjects(prev => [...prev.filter(o => o.uuid !== newObject.uuid), newObject]);
     setSyncProgress(30);
-    setCurrentObjectiveText("DATA-CONSTRUCT MATERIALIZED");
+    setCurrentObjectiveText("DATA-CONSTRUCT FORGED & MATERIALIZED"); // Updated text
     console.log("AI Voice: Data-construct received and materialized.");
-    // Placeholder: Transition to next module (e.g., PinEncryption)
     setTimeout(() => {
-        // setCurrentLoadedModule(CalibrationModuleEnum.PinEncryption);
-        // setCurrentObjectiveText("CURRENT OBJECTIVE: Set Quantum PIN");
-        // console.log("AI Voice: Module 03: Quantum PIN Encryption. Please proceed.");
-        setCurrentLoadedModule(null); // For now, end after module 2
+        setCurrentLoadedModule(null); 
         setCurrentObjectiveText("CALIBRATION SEQUENCE: STAGE 2 COMPLETE");
     }, 2000);
   }, []);
 
   const handleDocumentUploadFailure = useCallback(() => {
     console.log("Document Materialization failed.");
-    // AI voice and HUD feedback are handled within DocumentUploadModule for this specific failure
+  }, []);
+
+  // Callbacks for DocumentUploadModule to interact with camera/environment
+  const triggerCameraRecoil = useCallback(() => {
+    console.log("CalibrationSequence: ACTION - Camera Recoil Triggered!");
+    if (cameraRef.current) {
+        const originalZ = cameraRef.current.position.z;
+        const originalFov = cameraRef.current.fov;
+        cameraRef.current.position.z -= 0.5; // Recoil: Push camera slightly back (adjust value)
+        cameraRef.current.fov = originalFov + 10; // Widen FOV
+        cameraRef.current.updateProjectionMatrix();
+        
+        console.log(`Camera recoiled: Z from ${originalZ.toFixed(2)} to ${cameraRef.current.position.z.toFixed(2)}, FOV from ${originalFov} to ${cameraRef.current.fov}`);
+
+        setTimeout(() => {
+            if (cameraRef.current) {
+                cameraRef.current.position.z = originalZ;
+                cameraRef.current.fov = originalFov;
+                cameraRef.current.updateProjectionMatrix();
+                console.log("Camera recoil reset.");
+            }
+        }, 150); // Duration of the recoil effect
+    }
+  }, []);
+
+  const panCameraToTarget = useCallback((targetPosition: THREE.Vector3 | null) => {
+    // For now, this will just log. A real implementation would smoothly lerp camera.lookAt or rotation.
+    if (targetPosition) {
+        console.log(`CalibrationSequence: ACTION - Pan Camera Towards Target: x:${targetPosition.x.toFixed(2)}, y:${targetPosition.y.toFixed(2)}, z:${targetPosition.z.toFixed(2)}`);
+    } else {
+        console.log("CalibrationSequence: ACTION - Reset Camera Pan/Target.");
+        // Reset to default lookAt or rotation if needed
+    }
+    // if(cameraRef.current && targetPosition){
+    //     // cameraRef.current.lookAt(targetPosition); // Simple lookAt, or implement smooth lerping
+    // }
+  }, []);
+
+  const updateEnvironmentForComet = useCallback((cometPosition: THREE.Vector3) => {
+    console.log(`CalibrationSequence: ACTION - Environment Reacts to Comet at: x:${cometPosition.x.toFixed(2)}, y:${cometPosition.y.toFixed(2)}, z:${cometPosition.z.toFixed(2)}`);
+    // Here, you would iterate through gridsRef.current and change material properties
+    // of grid segments near cometPosition (e.g., emissive color, opacity).
+     gridsRef.current.forEach(grid => {
+        // Example: If comet is close to a grid plane, make that grid flicker brighter
+        // This is a placeholder; actual distance check and effect would be more complex
+        const distanceToGrid = Math.abs(grid.position.z - cometPosition.z); // Simplified check for Z-aligned grids
+        if (distanceToGrid < 10) { // Arbitrary distance
+            const mat = grid.material as THREE.LineBasicMaterial; // Cast to specific material if known
+            const originalColor = mat.color.getHex();
+            mat.color.setHex(0x00ffff); // Bright cyan
+            mat.opacity = 0.8;
+            setTimeout(() => {
+                mat.color.setHex(originalColor);
+                mat.opacity = 0.25;
+            }, 100); // Flicker duration
+        }
+    });
+  }, []);
+  
+  const triggerShockwaveEffect = useCallback(() => {
+      console.log("CalibrationSequence: ACTION - Visual Shockwave Effect Triggered!");
+      // This could involve a post-processing shader, a screen-space effect,
+      // or a rapidly expanding transparent mesh.
+      // For now, it's a log.
   }, []);
 
 
@@ -278,10 +342,12 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             renderer={rendererRef.current}
             onSuccess={handleDocumentUploadSuccess}
             onFailure={handleDocumentUploadFailure}
+            triggerCameraRecoil={triggerCameraRecoil}
+            panCameraToTarget={panCameraToTarget}
+            updateEnvironmentForComet={updateEnvironmentForComet}
+            triggerShockwaveEffect={triggerShockwaveEffect}
           />
         );
-      // case CalibrationModuleEnum.PinEncryption:
-        // return <PinEncryptionModule ... />
       default:
         return null; 
     }
@@ -295,7 +361,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
         <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
         <HUDText text="STATUS: ONLINE" delay={0.3} />
-        <HUDText text="CALIBRATION PROTOCOL V7.0" delay={0.6} />
+        <HUDText text="CALIBRATION PROTOCOL V7.1" delay={0.6} /> {/* Version bump for fun */}
       </div>
 
       <div className={`absolute top-4 right-4 p-2 flex items-center space-x-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
@@ -312,7 +378,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
           <div className="h-full bg-cyan-400 rounded animate-hud-line-draw-x" style={{ width: `${syncProgress}%`, transition: 'width 0.5s ease-out', animationDelay: '1.5s' }}></div>
         </div>
         {currentObjectiveText && (
-          <HUDText text={currentObjectiveText} delay={1.8} className="text-center mt-1 text-sm" />
+          <HUDText text={currentObjectiveText} delay={1.8} className="text-center mt-1 text-sm uppercase" />
         )}
       </div>
       
