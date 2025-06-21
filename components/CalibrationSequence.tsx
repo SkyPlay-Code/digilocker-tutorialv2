@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -8,7 +9,7 @@ import { CalibrationModule as CalibrationModuleEnum } from '../types';
 import { LogoIcon } from './icons'; 
 import AuthenticationSigil from './AuthenticationSigil';
 import DocumentUploadModule from './DocumentUploadModule';
-import PinEncryptionModule from './PinEncryptionModule'; // New Import
+import PinEncryptionModule from './PinEncryptionModule';
 
 interface CalibrationSequenceProps {
   onClose: () => void;
@@ -125,7 +126,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     composerRef.current = composer;
     
     const handleMouseMove = (event: MouseEvent) => {
-        if (currentLoadedModule === CalibrationModuleEnum.PinEncryption) return; // Disable main camera move during PIN
+        if (currentLoadedModule === CalibrationModuleEnum.PinEncryption && isDataCoreVisible === false) return; 
         mousePosRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
         mousePosRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     };
@@ -133,9 +134,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
     const animate = () => {
       animationFrameIdRef.current = requestAnimationFrame(animate);
-      if(!cameraRef.current || !composerRef.current) return;
+      if(!cameraRef.current || !composerRef.current || !sceneRef.current) return;
 
-      if (currentLoadedModule !== CalibrationModuleEnum.PinEncryption) { // Only control Data Core camera if PinEncryption isn't active
+      if (currentLoadedModule !== CalibrationModuleEnum.PinEncryption || isDataCoreVisible) {
         cameraRef.current.rotation.y += (mousePosRef.current.x * 0.05 - cameraRef.current.rotation.y) * 0.05; 
         cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.05 - cameraRef.current.rotation.x) * 0.05;
       }
@@ -165,7 +166,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             pinConstellationRef.current.rotation.x -= 0.0001;
         }
       }
-      composerRef.current.render(clockRef.current.getDelta());
+      // Render Data Core scene if visible OR if PinEncryption module is not fully active yet (e.g. during its own fade in)
+      if (isDataCoreVisible || (currentLoadedModule === CalibrationModuleEnum.PinEncryption && sceneRef.current.visible)) {
+         composerRef.current.render(clockRef.current.getDelta());
+      }
     };
     animate();
 
@@ -197,7 +201,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
           const material = (child as THREE.Mesh | THREE.Points | THREE.GridHelper | THREE.LineSegments | THREE.Line).material;
           if (Array.isArray(material)) {
             material.forEach(mat => mat.dispose());
-          } else {
+          } else if (material) {
             (material as THREE.Material).dispose();
           }
         }
@@ -211,19 +215,16 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
   // Handle visibility of Data Core elements
   useEffect(() => {
-    const visibility = isDataCoreVisible;
-    if (dataCometsRef.current) dataCometsRef.current.visible = visibility;
-    gridsRef.current.forEach(grid => grid.visible = visibility);
-    materializedObjects.forEach(obj => obj.visible = visibility);
-    if (pinConstellationRef.current) pinConstellationRef.current.visible = visibility; // Constellation also part of data core now
-  }, [isDataCoreVisible, materializedObjects]);
+    if(sceneRef.current) sceneRef.current.visible = isDataCoreVisible;
+    // Individual elements like grids, comets, materialized objects could also be toggled here if needed
+    // but toggling the whole scene visibility is simpler for now.
+  }, [isDataCoreVisible]);
 
 
   useEffect(() => {
     materializedObjects.forEach(obj => {
-        if (obj && !sceneRef.current?.children.includes(obj)) {
+        if (obj && sceneRef.current && !sceneRef.current?.children.includes(obj)) {
             sceneRef.current?.add(obj);
-            obj.visible = isDataCoreVisible; // ensure new objects respect current visibility
         }
     });
     return () => {
@@ -231,7 +232,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             sceneRef.current?.remove(obj);
         });
     };
-  }, [materializedObjects, isDataCoreVisible]);
+  }, [materializedObjects]);
 
   const loadModule = (module: CalibrationModuleEnum) => {
     setCurrentLoadedModule(module);
@@ -252,7 +253,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             setSyncProgress(30);
             setCurrentObjectiveText("CURRENT OBJECTIVE: Set Quantum Entanglement Key");
             console.log("AI Voice: Module 03: Quantum Pin Encryption. Create your key by selecting six stars to form a unique constellation.");
-            setIsDataCoreVisible(false); // Fade out Data Core for star-field
+            setIsDataCoreVisible(false); 
             break;
         case CalibrationModuleEnum.Completed:
             setSyncProgress(100);
@@ -293,27 +294,48 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log("Document Materialization failed.");
   }, []);
 
-  const handlePinSetSuccess = useCallback((constellationGroup: THREE.Group) => {
+  const handlePinSetSuccess = useCallback((constellationGroupFromModule: THREE.Group) => {
     console.log("AI Voice: Entanglement key registered. Your constellation is now your signature.");
     setSyncProgress(50);
     setCurrentObjectiveText("QUANTUM ENTANGLEMENT KEY REGISTERED");
     
-    // Make constellation persistent in Data Core
-    const clonedConstellation = constellationGroup.clone(true);
-    clonedConstellation.traverse(child => {
-        if ((child as THREE.Mesh).material) {
-            const material = (child as THREE.Mesh).material as THREE.Material;
+    if (pinConstellationRef.current && sceneRef.current) { // Clean up old one if exists
+        sceneRef.current.remove(pinConstellationRef.current);
+        pinConstellationRef.current.traverse(child => {
+            if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+                child.geometry.dispose();
+                const material = (child as THREE.Mesh | THREE.Line).material;
+                if (Array.isArray(material)) material.forEach(m => m.dispose());
+                else if (material) (material as THREE.Material).dispose();
+            }
+        });
+    }
+    
+    // The constellationGroupFromModule contains clones. We can use it directly.
+    constellationGroupFromModule.traverse(child => {
+        const obj = child as THREE.Mesh | THREE.Line;
+        if (obj.material) {
+            const material = obj.material as THREE.Material; // It's not an array for basic stars/lines
             material.transparent = true;
-            material.opacity = 0.15; // Faintly visible
+            material.opacity = 0.20; // Faintly visible
+            if (material instanceof THREE.LineBasicMaterial) {
+                material.color.multiplyScalar(0.7); // Darken lines slightly
+            } else if (material instanceof THREE.MeshBasicMaterial) {
+                 material.color.multiplyScalar(0.7); // Darken stars slightly
+            }
         }
     });
-    clonedConstellation.scale.set(0.1, 0.1, 0.1); // Scale it down
-    clonedConstellation.position.set(5, 5, -15); // Position it in the Data Core background
-    pinConstellationRef.current = clonedConstellation;
-    sceneRef.current?.add(pinConstellationRef.current);
+    constellationGroupFromModule.scale.set(0.07, 0.07, 0.07); 
+    constellationGroupFromModule.position.set(2, -3, -10); // Position it in the Data Core background
+    constellationGroupFromModule.rotation.set(Math.PI / 8, Math.PI / 4, 0);
+
+    pinConstellationRef.current = constellationGroupFromModule;
+    if (sceneRef.current) {
+        sceneRef.current.add(pinConstellationRef.current);
+    }
 
     setIsDataCoreVisible(true); // Fade Data Core back in
-    setCurrentLoadedModule(null); // Pin Encryption module hides itself
+    //setCurrentLoadedModule(null); // Pin Encryption module hides itself after calling onModuleComplete
 
     setTimeout(() => {
       loadModule(CalibrationModuleEnum.Completed);
@@ -360,11 +382,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log(`CalibrationSequence: ACTION - Environment Reacts to Comet at: x:${cometPosition.x.toFixed(2)}, y:${cometPosition.y.toFixed(2)}, z:${cometPosition.z.toFixed(2)}`);
      gridsRef.current.forEach(grid => {
         const distanceToGridPlane = Math.min(
-            Math.abs(grid.position.x - cometPosition.x), // For X-aligned grids
-            Math.abs(grid.position.y - cometPosition.y), // For Y-aligned grids
-            Math.abs(grid.position.z - cometPosition.z)  // For Z-aligned grids
+            Math.abs(grid.position.x - cometPosition.x), 
+            Math.abs(grid.position.y - cometPosition.y), 
+            Math.abs(grid.position.z - cometPosition.z)  
         );
-        // This is a very simplified check. A proper check would consider grid orientation.
         if (distanceToGridPlane < 15) { 
             const mat = grid.material as THREE.LineBasicMaterial; 
             const originalColorHex = mat.color.getHex();
@@ -387,7 +408,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
 
   const renderCurrentModuleContent = () => {
-    if (!rendererRef.current) { // Check for renderer as PinEncryption needs it
+    if (!rendererRef.current) { 
         return <div className="text-cyan-400 text-center p-8">Initializing Data Core Interface...</div>;
     }
 
@@ -400,7 +421,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
           />
         );
       case CalibrationModuleEnum.DocumentUpload:
-        if (!sceneRef.current || !cameraRef.current) return null; // Ensure scene/camera are ready
+        if (!sceneRef.current || !cameraRef.current) return null; 
         return (
           <DocumentUploadModule
             scene={sceneRef.current}
@@ -415,15 +436,15 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
           />
         );
        case CalibrationModuleEnum.PinEncryption:
-        if (!rendererRef.current) return null; // PinEncryptionModule needs renderer
+        if (!rendererRef.current) return null; 
         return (
             <PinEncryptionModule
-                renderer={rendererRef.current}
+                renderer={rendererRef.current} // PinEncryptionModule manages its own scene now
                 onPinSuccess={handlePinSetSuccess}
                 onReset={handlePinReset}
-                onModuleComplete={() => { // When PinEncryptionModule's own fadeout is done
-                    setIsDataCoreVisible(true);
-                     // loadModule(CalibrationModuleEnum.Completed) // Or next module
+                onModuleComplete={() => { 
+                    setIsDataCoreVisible(true); // Ensure data core is visible after Pin module fully exits
+                    // Next module load is handled by onPinSuccess timeout
                 }}
             />
         );
@@ -434,10 +455,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
 
   return (
-    <div className={`fixed inset-0 z-40 animate-fadeIn ${currentLoadedModule === CalibrationModuleEnum.PinEncryption ? 'bg-black' : ''}`}> 
+    <div className={`fixed inset-0 z-40 animate-fadeIn ${!isDataCoreVisible && currentLoadedModule === CalibrationModuleEnum.PinEncryption ? 'bg-black' : ''}`}> 
       <div ref={mountRef} className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isDataCoreVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
 
-      {currentLoadedModule !== CalibrationModuleEnum.PinEncryption && ( // Hide main HUD during PIN entry
+      {isDataCoreVisible && ( // Hide main HUD when Data Core is not visible (e.g., during PIN entry)
         <>
           <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
             <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
@@ -469,7 +490,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
         </>
       )}
       
+      {/* Module Content Area - always rendered for the active module */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        {/* The active module will set pointer-events: auto on its own root if it needs interaction */}
         {renderCurrentModuleContent()}
       </div>
 
@@ -478,3 +501,4 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 };
 
 export default CalibrationSequence;
+      
