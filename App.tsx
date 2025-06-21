@@ -6,6 +6,7 @@ import DataStreamMap3D from './components/DataStreamMap3D'; // Updated import
 import ShareSection from './components/ShareSection';
 import ArchivesSection from './components/ArchivesSection';
 import Footer from './components/Footer';
+import SignalLostScreen from './components/SignalLostScreen'; // New import
 import { AppView, CalibrationModule } from './types';
 
 const App: React.FC = () => {
@@ -14,6 +15,7 @@ const App: React.FC = () => {
   
   const [isTransitioningToCalibration, setIsTransitioningToCalibration] = useState(false);
   const [showTransitionFlash, setShowTransitionFlash] = useState(false);
+  const [signalLostDismissed, setSignalLostDismissed] = useState(false); // New state
 
   const dataStreamMapRef = useRef<HTMLElement>(null);
   const archivesRef = useRef<HTMLElement>(null); 
@@ -23,22 +25,10 @@ const App: React.FC = () => {
     setCalibrationStartModule(undefined); 
     setIsTransitioningToCalibration(true);
 
-    // Timing for the "Light Speed" transition (total 1.5s)
-    // T=1.2s: Start flash
-    setTimeout(() => {
-      console.log("Transition: Breach flash starts");
-      setShowTransitionFlash(true);
-    }, 1200);
-
-    // T=1.2s + 0.1s (flash duration) = 1.3s: End flash
-    setTimeout(() => {
-      console.log("Transition: Breach flash ends");
-      setShowTransitionFlash(false);
-    }, 1300);
+    setTimeout(() => setShowTransitionFlash(true), 1200);
+    setTimeout(() => setShowTransitionFlash(false), 1300);
     
-    // T=1.5s: End transition, switch view
     setTimeout(() => {
-      console.log("Transition: Complete, switching to Calibration view");
       setCurrentView(AppView.Calibration);
       setIsTransitioningToCalibration(false);
       window.scrollTo(0,0); 
@@ -61,13 +51,21 @@ const App: React.FC = () => {
     setCurrentView(AppView.Calibration);
     window.scrollTo(0,0);
   }, []);
+
+  const handleAccessArchive = useCallback(() => {
+    setSignalLostDismissed(true);
+  }, []);
   
   useEffect(() => {
-    if(currentView === AppView.Hero) {
-       // Potentially reset scroll or other states if needed
+    if(currentView === AppView.Hero && signalLostDismissed) {
+       // Potentially reset scroll or other states if needed when returning to Hero
     }
-  }, [currentView]);
+  }, [currentView, signalLostDismissed]);
 
+
+  if (!signalLostDismissed) {
+    return <SignalLostScreen onAccessArchive={handleAccessArchive} />;
+  }
 
   return (
     <div className="bg-gray-900 text-gray-100 min-h-screen font-orbitron">
@@ -82,8 +80,6 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-white z-[1000] animate-screen-flash-white pointer-events-none"></div>
       )}
 
-      {/* Main page content, conditionally rendered or always present and scrolled to */}
-      {/* Hero section is always mounted to handle its transition animation even when view changes */}
       <div className={currentView === AppView.Calibration && !isTransitioningToCalibration ? 'opacity-0 pointer-events-none h-0 overflow-hidden' : 'opacity-100 transition-opacity duration-500'}>
         <HeroSection 
           onInitiateCalibration={handleInitiateCalibration}
@@ -91,10 +87,9 @@ const App: React.FC = () => {
           isTransitioning={isTransitioningToCalibration}
         />
         
-        {/* Only render other sections if not in calibration and not transitioning away from hero */}
         {currentView === AppView.Hero && !isTransitioningToCalibration && (
           <>
-            <section ref={dataStreamMapRef} id="data-stream-map" className="min-h-screen bg-black relative"> {/* Ensure section has height for 3D map */}
+            <section ref={dataStreamMapRef} id="data-stream-map" className="min-h-screen bg-black relative">
                 <DataStreamMap3D onJumpToSimulation={handleJumpToSimulation} />
             </section>
             
