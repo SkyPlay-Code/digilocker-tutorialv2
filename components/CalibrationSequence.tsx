@@ -8,6 +8,7 @@ import { CalibrationModule as CalibrationModuleEnum } from '../types';
 import { LogoIcon } from './icons'; 
 import AuthenticationSigil from './AuthenticationSigil';
 import DocumentUploadModule from './DocumentUploadModule';
+import PinEncryptionModule from './PinEncryptionModule'; // New Import
 
 interface CalibrationSequenceProps {
   onClose: () => void;
@@ -48,6 +49,8 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
   const [currentObjectiveText, setCurrentObjectiveText] = useState("");
   const [materializedObjects, setMaterializedObjects] = useState<THREE.Object3D[]>([]);
   const animationFrameIdRef = useRef<number | null>(null);
+  const [isDataCoreVisible, setIsDataCoreVisible] = useState(true);
+  const pinConstellationRef = useRef<THREE.Group | null>(null);
 
 
   useEffect(() => {
@@ -58,7 +61,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
-    const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000); // Default FOV 75
+    const camera = new THREE.PerspectiveCamera(75, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000); 
     camera.position.set(0, 0, 0.1); 
     cameraRef.current = camera;
 
@@ -122,38 +125,46 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     composerRef.current = composer;
     
     const handleMouseMove = (event: MouseEvent) => {
-      mousePosRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mousePosRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        if (currentLoadedModule === CalibrationModuleEnum.PinEncryption) return; // Disable main camera move during PIN
+        mousePosRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mousePosRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
     };
     window.addEventListener('mousemove', handleMouseMove);
 
     const animate = () => {
       animationFrameIdRef.current = requestAnimationFrame(animate);
-      if(!cameraRef.current || !composerRef.current || !dataCometsRef.current) return;
+      if(!cameraRef.current || !composerRef.current) return;
 
-      cameraRef.current.rotation.y += (mousePosRef.current.x * 0.05 - cameraRef.current.rotation.y) * 0.05; // Adjusted mouse influence
-      cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.05 - cameraRef.current.rotation.x) * 0.05; // Adjusted mouse influence
-
-
-      const cometPositions = dataCometsRef.current.geometry.attributes.position.array as Float32Array;
-      const cometVelocities = dataCometsRef.current.geometry.attributes.velocity.array as Float32Array;
-      for (let i = 0; i < particleCount; i++) {
-        cometPositions[i * 3 + 0] += cometVelocities[i * 3 + 0];
-        cometPositions[i * 3 + 1] += cometVelocities[i * 3 + 1];
-        cometPositions[i * 3 + 2] += cometVelocities[i * 3 + 2];
-        if (Math.abs(cometPositions[i*3+0]) > gridSize * 0.75) cometVelocities[i*3+0] *= -1;
-        if (Math.abs(cometPositions[i*3+1]) > gridSize * 0.75) cometVelocities[i*3+1] *= -1;
-        if (Math.abs(cometPositions[i*3+2]) > gridSize * 0.75) cometVelocities[i*3+2] *= -1;
+      if (currentLoadedModule !== CalibrationModuleEnum.PinEncryption) { // Only control Data Core camera if PinEncryption isn't active
+        cameraRef.current.rotation.y += (mousePosRef.current.x * 0.05 - cameraRef.current.rotation.y) * 0.05; 
+        cameraRef.current.rotation.x += (-mousePosRef.current.y * 0.05 - cameraRef.current.rotation.x) * 0.05;
       }
-      dataCometsRef.current.geometry.attributes.position.needsUpdate = true;
-      gridsRef.current.forEach(g => g.rotation.y += 0.0001); 
-
-      materializedObjects.forEach(obj => {
-        obj.rotation.y += 0.003; // Slightly slower base rotation
-        obj.rotation.x += 0.001;
-        obj.rotation.z += 0.0005;
-      });
       
+      if (isDataCoreVisible) {
+        if(dataCometsRef.current) {
+            const cometPositions = dataCometsRef.current.geometry.attributes.position.array as Float32Array;
+            const cometVelocities = dataCometsRef.current.geometry.attributes.velocity.array as Float32Array;
+            for (let i = 0; i < particleCount; i++) {
+                cometPositions[i * 3 + 0] += cometVelocities[i * 3 + 0];
+                cometPositions[i * 3 + 1] += cometVelocities[i * 3 + 1];
+                cometPositions[i * 3 + 2] += cometVelocities[i * 3 + 2];
+                if (Math.abs(cometPositions[i*3+0]) > gridSize * 0.75) cometVelocities[i*3+0] *= -1;
+                if (Math.abs(cometPositions[i*3+1]) > gridSize * 0.75) cometVelocities[i*3+1] *= -1;
+                if (Math.abs(cometPositions[i*3+2]) > gridSize * 0.75) cometVelocities[i*3+2] *= -1;
+            }
+            dataCometsRef.current.geometry.attributes.position.needsUpdate = true;
+        }
+        gridsRef.current.forEach(g => g.rotation.y += 0.0001); 
+        materializedObjects.forEach(obj => {
+            obj.rotation.y += 0.003; 
+            obj.rotation.x += 0.001;
+            obj.rotation.z += 0.0005;
+        });
+        if(pinConstellationRef.current) {
+            pinConstellationRef.current.rotation.y += 0.0002;
+            pinConstellationRef.current.rotation.x -= 0.0001;
+        }
+      }
       composerRef.current.render(clockRef.current.getDelta());
     };
     animate();
@@ -171,16 +182,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       setHudBooted(true);
       console.log("AI Voice: Calibration sequence initiated. Welcome.");
        const initialModule = jumpToModule ?? CalibrationModuleEnum.Authentication;
-        setCurrentLoadedModule(initialModule);
-
-        if (initialModule === CalibrationModuleEnum.Authentication) {
-            setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
-            console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
-        } else if (initialModule === CalibrationModuleEnum.DocumentUpload) {
-            setSyncProgress(15); 
-            setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
-            console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
-        }
+        loadModule(initialModule);
     }, 500);
 
     return () => {
@@ -190,9 +192,9 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       
       if(rendererRef.current) rendererRef.current.dispose();
       sceneRef.current?.traverse(child => {
-        if (child instanceof THREE.Mesh || child instanceof THREE.Points || child instanceof THREE.GridHelper) {
+        if (child instanceof THREE.Mesh || child instanceof THREE.Points || child instanceof THREE.GridHelper || child instanceof THREE.LineSegments || child instanceof THREE.Line) {
           child.geometry.dispose();
-          const material = (child as THREE.Mesh | THREE.Points | THREE.GridHelper).material;
+          const material = (child as THREE.Mesh | THREE.Points | THREE.GridHelper | THREE.LineSegments | THREE.Line).material;
           if (Array.isArray(material)) {
             material.forEach(mat => mat.dispose());
           } else {
@@ -205,23 +207,61 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
       }
       console.log("CalibrationSequence: Data Core scene cleaned up.");
     };
-  }, [jumpToModule]); // materializedObjects removed from deps for now, managed by its own effect
+  }, [jumpToModule]);
 
-  // Handle materialized object updates separately
-    useEffect(() => {
+  // Handle visibility of Data Core elements
+  useEffect(() => {
+    const visibility = isDataCoreVisible;
+    if (dataCometsRef.current) dataCometsRef.current.visible = visibility;
+    gridsRef.current.forEach(grid => grid.visible = visibility);
+    materializedObjects.forEach(obj => obj.visible = visibility);
+    if (pinConstellationRef.current) pinConstellationRef.current.visible = visibility; // Constellation also part of data core now
+  }, [isDataCoreVisible, materializedObjects]);
+
+
+  useEffect(() => {
+    materializedObjects.forEach(obj => {
+        if (obj && !sceneRef.current?.children.includes(obj)) {
+            sceneRef.current?.add(obj);
+            obj.visible = isDataCoreVisible; // ensure new objects respect current visibility
+        }
+    });
+    return () => {
         materializedObjects.forEach(obj => {
-            if (obj && !sceneRef.current?.children.includes(obj)) {
-                sceneRef.current?.add(obj);
-            }
+            sceneRef.current?.remove(obj);
         });
-        // Cleanup: remove objects from scene if they are removed from materializedObjects state
-        return () => {
-            materializedObjects.forEach(obj => {
-                sceneRef.current?.remove(obj);
-                // Consider disposing geometry/material if objects are permanently removed and not reused
-            });
-        };
-    }, [materializedObjects]);
+    };
+  }, [materializedObjects, isDataCoreVisible]);
+
+  const loadModule = (module: CalibrationModuleEnum) => {
+    setCurrentLoadedModule(module);
+    switch (module) {
+        case CalibrationModuleEnum.Authentication:
+            setSyncProgress(0);
+            setCurrentObjectiveText("CURRENT OBJECTIVE: Authenticate Biometric Signature");
+            console.log("AI Voice: Module 01: Identity Authentication. Please calibrate your input by tracing the biometric sigil.");
+            setIsDataCoreVisible(true);
+            break;
+        case CalibrationModuleEnum.DocumentUpload:
+            setSyncProgress(15);
+            setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
+            console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
+            setIsDataCoreVisible(true);
+            break;
+        case CalibrationModuleEnum.PinEncryption:
+            setSyncProgress(30);
+            setCurrentObjectiveText("CURRENT OBJECTIVE: Set Quantum Entanglement Key");
+            console.log("AI Voice: Module 03: Quantum Pin Encryption. Create your key by selecting six stars to form a unique constellation.");
+            setIsDataCoreVisible(false); // Fade out Data Core for star-field
+            break;
+        case CalibrationModuleEnum.Completed:
+            setSyncProgress(100);
+            setCurrentObjectiveText("ALL SYSTEMS CALIBRATED. QUANTUM VAULT ONLINE.");
+            console.log("AI Voice: Calibration complete. Quantum Vault systems nominal.");
+            setIsDataCoreVisible(true);
+            break;
+    }
+  };
 
 
   const handleAuthenticationSuccess = useCallback(() => {
@@ -230,9 +270,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     setCurrentObjectiveText("BIOMETRIC SIGNATURE VERIFIED");
     console.log("AI Voice: Signature Verified. Module 01 complete.");
     setTimeout(() => {
-        setCurrentLoadedModule(CalibrationModuleEnum.DocumentUpload);
-        setCurrentObjectiveText("CURRENT OBJECTIVE: UPLOAD PRIMARY DATA-CONSTRUCT");
-        console.log("AI Voice: Module 02: Document Materialization. Please select a data-construct for upload.");
+        loadModule(CalibrationModuleEnum.DocumentUpload);
     }, 1500);
   }, []);
 
@@ -244,11 +282,10 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log("Document Materialization successful!");
     setMaterializedObjects(prev => [...prev.filter(o => o.uuid !== newObject.uuid), newObject]);
     setSyncProgress(30);
-    setCurrentObjectiveText("DATA-CONSTRUCT FORGED & MATERIALIZED"); // Updated text
+    setCurrentObjectiveText("DATA-CONSTRUCT FORGED & MATERIALIZED"); 
     console.log("AI Voice: Data-construct received and materialized.");
     setTimeout(() => {
-        setCurrentLoadedModule(null); 
-        setCurrentObjectiveText("CALIBRATION SEQUENCE: STAGE 2 COMPLETE");
+        loadModule(CalibrationModuleEnum.PinEncryption);
     }, 2000);
   }, []);
 
@@ -256,14 +293,45 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
     console.log("Document Materialization failed.");
   }, []);
 
-  // Callbacks for DocumentUploadModule to interact with camera/environment
+  const handlePinSetSuccess = useCallback((constellationGroup: THREE.Group) => {
+    console.log("AI Voice: Entanglement key registered. Your constellation is now your signature.");
+    setSyncProgress(50);
+    setCurrentObjectiveText("QUANTUM ENTANGLEMENT KEY REGISTERED");
+    
+    // Make constellation persistent in Data Core
+    const clonedConstellation = constellationGroup.clone(true);
+    clonedConstellation.traverse(child => {
+        if ((child as THREE.Mesh).material) {
+            const material = (child as THREE.Mesh).material as THREE.Material;
+            material.transparent = true;
+            material.opacity = 0.15; // Faintly visible
+        }
+    });
+    clonedConstellation.scale.set(0.1, 0.1, 0.1); // Scale it down
+    clonedConstellation.position.set(5, 5, -15); // Position it in the Data Core background
+    pinConstellationRef.current = clonedConstellation;
+    sceneRef.current?.add(pinConstellationRef.current);
+
+    setIsDataCoreVisible(true); // Fade Data Core back in
+    setCurrentLoadedModule(null); // Pin Encryption module hides itself
+
+    setTimeout(() => {
+      loadModule(CalibrationModuleEnum.Completed);
+    }, 2000);
+  }, []);
+  
+  const handlePinReset = useCallback(() => {
+      console.log("AI Voice: Clearing sequence. Please select a new constellation.");
+  }, []);
+
+
   const triggerCameraRecoil = useCallback(() => {
     console.log("CalibrationSequence: ACTION - Camera Recoil Triggered!");
     if (cameraRef.current) {
         const originalZ = cameraRef.current.position.z;
         const originalFov = cameraRef.current.fov;
-        cameraRef.current.position.z -= 0.5; // Recoil: Push camera slightly back (adjust value)
-        cameraRef.current.fov = originalFov + 10; // Widen FOV
+        cameraRef.current.position.z -= 0.5; 
+        cameraRef.current.fov = originalFov + 10; 
         cameraRef.current.updateProjectionMatrix();
         
         console.log(`Camera recoiled: Z from ${originalZ.toFixed(2)} to ${cameraRef.current.position.z.toFixed(2)}, FOV from ${originalFov} to ${cameraRef.current.fov}`);
@@ -275,54 +343,51 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
                 cameraRef.current.updateProjectionMatrix();
                 console.log("Camera recoil reset.");
             }
-        }, 150); // Duration of the recoil effect
+        }, 150); 
     }
   }, []);
 
   const panCameraToTarget = useCallback((targetPosition: THREE.Vector3 | null) => {
-    // For now, this will just log. A real implementation would smoothly lerp camera.lookAt or rotation.
-    if (targetPosition) {
+    if (targetPosition && cameraRef.current) {
         console.log(`CalibrationSequence: ACTION - Pan Camera Towards Target: x:${targetPosition.x.toFixed(2)}, y:${targetPosition.y.toFixed(2)}, z:${targetPosition.z.toFixed(2)}`);
+        // cameraRef.current.lookAt(targetPosition); // Simple one, or lerp
     } else {
         console.log("CalibrationSequence: ACTION - Reset Camera Pan/Target.");
-        // Reset to default lookAt or rotation if needed
     }
-    // if(cameraRef.current && targetPosition){
-    //     // cameraRef.current.lookAt(targetPosition); // Simple lookAt, or implement smooth lerping
-    // }
   }, []);
 
   const updateEnvironmentForComet = useCallback((cometPosition: THREE.Vector3) => {
     console.log(`CalibrationSequence: ACTION - Environment Reacts to Comet at: x:${cometPosition.x.toFixed(2)}, y:${cometPosition.y.toFixed(2)}, z:${cometPosition.z.toFixed(2)}`);
-    // Here, you would iterate through gridsRef.current and change material properties
-    // of grid segments near cometPosition (e.g., emissive color, opacity).
      gridsRef.current.forEach(grid => {
-        // Example: If comet is close to a grid plane, make that grid flicker brighter
-        // This is a placeholder; actual distance check and effect would be more complex
-        const distanceToGrid = Math.abs(grid.position.z - cometPosition.z); // Simplified check for Z-aligned grids
-        if (distanceToGrid < 10) { // Arbitrary distance
-            const mat = grid.material as THREE.LineBasicMaterial; // Cast to specific material if known
-            const originalColor = mat.color.getHex();
-            mat.color.setHex(0x00ffff); // Bright cyan
+        const distanceToGridPlane = Math.min(
+            Math.abs(grid.position.x - cometPosition.x), // For X-aligned grids
+            Math.abs(grid.position.y - cometPosition.y), // For Y-aligned grids
+            Math.abs(grid.position.z - cometPosition.z)  // For Z-aligned grids
+        );
+        // This is a very simplified check. A proper check would consider grid orientation.
+        if (distanceToGridPlane < 15) { 
+            const mat = grid.material as THREE.LineBasicMaterial; 
+            const originalColorHex = mat.color.getHex();
+            if(!grid.userData.originalColor) grid.userData.originalColor = originalColorHex;
+
+            mat.color.setHex(0x00ffff); 
             mat.opacity = 0.8;
-            setTimeout(() => {
-                mat.color.setHex(originalColor);
+            if (grid.userData.flickerTimeout) clearTimeout(grid.userData.flickerTimeout);
+            grid.userData.flickerTimeout = setTimeout(() => {
+                mat.color.setHex(grid.userData.originalColor);
                 mat.opacity = 0.25;
-            }, 100); // Flicker duration
+            }, 100); 
         }
     });
   }, []);
   
   const triggerShockwaveEffect = useCallback(() => {
       console.log("CalibrationSequence: ACTION - Visual Shockwave Effect Triggered!");
-      // This could involve a post-processing shader, a screen-space effect,
-      // or a rapidly expanding transparent mesh.
-      // For now, it's a log.
   }, []);
 
 
   const renderCurrentModuleContent = () => {
-    if (!sceneRef.current || !cameraRef.current || !rendererRef.current) {
+    if (!rendererRef.current) { // Check for renderer as PinEncryption needs it
         return <div className="text-cyan-400 text-center p-8">Initializing Data Core Interface...</div>;
     }
 
@@ -335,6 +400,7 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
           />
         );
       case CalibrationModuleEnum.DocumentUpload:
+        if (!sceneRef.current || !cameraRef.current) return null; // Ensure scene/camera are ready
         return (
           <DocumentUploadModule
             scene={sceneRef.current}
@@ -348,6 +414,19 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
             triggerShockwaveEffect={triggerShockwaveEffect}
           />
         );
+       case CalibrationModuleEnum.PinEncryption:
+        if (!rendererRef.current) return null; // PinEncryptionModule needs renderer
+        return (
+            <PinEncryptionModule
+                renderer={rendererRef.current}
+                onPinSuccess={handlePinSetSuccess}
+                onReset={handlePinReset}
+                onModuleComplete={() => { // When PinEncryptionModule's own fadeout is done
+                    setIsDataCoreVisible(true);
+                     // loadModule(CalibrationModuleEnum.Completed) // Or next module
+                }}
+            />
+        );
       default:
         return null; 
     }
@@ -355,40 +434,45 @@ const CalibrationSequence: React.FC<CalibrationSequenceProps> = ({ onClose, jump
 
 
   return (
-    <div className="fixed inset-0 z-40 animate-fadeIn"> 
-      <div ref={mountRef} className="absolute inset-0 z-0"></div>
+    <div className={`fixed inset-0 z-40 animate-fadeIn ${currentLoadedModule === CalibrationModuleEnum.PinEncryption ? 'bg-black' : ''}`}> 
+      <div ref={mountRef} className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isDataCoreVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
 
-      <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
-        <HUDText text="STATUS: ONLINE" delay={0.3} />
-        <HUDText text="CALIBRATION PROTOCOL V7.1" delay={0.6} /> {/* Version bump for fun */}
-      </div>
+      {currentLoadedModule !== CalibrationModuleEnum.PinEncryption && ( // Hide main HUD during PIN entry
+        <>
+          <div className={`absolute top-4 left-4 p-2 space-y-1 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="h-0.5 w-16 bg-cyan-400 animate-hud-line-draw-x mb-1" style={{ animationDelay: '0.1s' }}></div>
+            <HUDText text="STATUS: ONLINE" delay={0.3} />
+            <HUDText text="CALIBRATION PROTOCOL V7.1" delay={0.6} /> 
+          </div>
 
-      <div className={`absolute top-4 right-4 p-2 flex items-center space-x-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
-        <LogoIcon className="w-8 h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 3px #00FFFF)'}} />
-        <div className="h-8 w-0.5 bg-cyan-400 animate-hud-line-draw-y" style={{ animationDelay: '0.1s' }}></div>
-      </div>
+          <div className={`absolute top-4 right-4 p-2 flex items-center space-x-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
+            <LogoIcon className="w-8 h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 3px #00FFFF)'}} />
+            <div className="h-8 w-0.5 bg-cyan-400 animate-hud-line-draw-y" style={{ animationDelay: '0.1s' }}></div>
+          </div>
 
-      <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 max-w-md p-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
-        <div className="flex items-center justify-between">
-            <HUDText text="SYNC PROGRESS:" delay={1.2} />
-            <HUDText text={`${Math.round(syncProgress)}%`} delay={1.2} />
-        </div>
-        <div className="h-1 w-full bg-cyan-900/50 mt-1 rounded overflow-hidden">
-          <div className="h-full bg-cyan-400 rounded animate-hud-line-draw-x" style={{ width: `${syncProgress}%`, transition: 'width 0.5s ease-out', animationDelay: '1.5s' }}></div>
-        </div>
-        {currentObjectiveText && (
-          <HUDText text={currentObjectiveText} delay={1.8} className="text-center mt-1 text-sm uppercase" />
-        )}
-      </div>
+          <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 max-w-md p-2 transition-opacity duration-500 ${hudBooted ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-center justify-between">
+                <HUDText text="SYNC PROGRESS:" delay={1.2} />
+                <HUDText text={`${Math.round(syncProgress)}%`} delay={1.2} />
+            </div>
+            <div className="h-1 w-full bg-cyan-900/50 mt-1 rounded overflow-hidden">
+              <div className="h-full bg-cyan-400 rounded animate-hud-line-draw-x" style={{ width: `${syncProgress}%`, transition: 'width 0.5s ease-out', animationDelay: '1.5s' }}></div>
+            </div>
+            {currentObjectiveText && (
+              <HUDText text={currentObjectiveText} delay={1.8} className="text-center mt-1 text-sm uppercase" />
+            )}
+          </div>
+          
+          <button onClick={onClose} className="absolute bottom-4 right-4 text-cyan-300 hover:text-white transition-colors z-50 font-roboto-mono p-2 border border-cyan-500/50 hover:border-cyan-400 rounded text-sm animate-fadeIn" style={{animationDelay: '2s'}}>
+            [ EXIT CALIBRATION ]
+          </button>
+        </>
+      )}
       
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         {renderCurrentModuleContent()}
       </div>
 
-       <button onClick={onClose} className="absolute bottom-4 right-4 text-cyan-300 hover:text-white transition-colors z-50 font-roboto-mono p-2 border border-cyan-500/50 hover:border-cyan-400 rounded text-sm animate-fadeIn" style={{animationDelay: '2s'}}>
-          [ EXIT CALIBRATION ]
-        </button>
     </div>
   );
 };

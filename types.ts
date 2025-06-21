@@ -29,4 +29,3 @@ export interface ParticleStyle {
   size: string;
   opacity: number;
 }
-    
